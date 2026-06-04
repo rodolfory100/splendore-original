@@ -453,3 +453,19 @@ textarea { resize: vertical; min-height: 80px; }
     @apply font-sans;
   }
 }
+.kpi-purple { background: linear-gradient(135deg, #6C63FF, #4F46E5); color: #fff; border: none; }
+.kpi-green  { background: linear-gradient(135deg, #10B981, #059669); color: #fff; border: none; }
+.kpi-red    { background: linear-gradient(135deg, #EF4444, #DC2626); color: #fff; border: none; }
+.kpi-blue   { background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: #fff; border: none; }
+.kpi-orange { background: linear-gradient(135deg, #F97316, #EA580C); color: #fff; border: none; }
+.kpi-cyan   { background: linear-gradient(135deg, #06B6D4, #0891B2); color: #fff; border: none; }
+
+.kpi-purple .kpi-value, .kpi-green .kpi-value, .kpi-red .kpi-value,
+.kpi-blue .kpi-value, .kpi-orange .kpi-value, .kpi-cyan .kpi-value { color: #fff !important; }
+
+.kpi-purple .panel-sub, .kpi-green .panel-sub, .kpi-red .panel-sub,
+.kpi-blue .panel-sub, .kpi-orange .panel-sub, .kpi-cyan .panel-sub,
+.kpi-purple [style*="color"], .kpi-green [style*="color"], .kpi-red [style*="color"],
+.kpi-blue [style*="color"], .kpi-orange [style*="color"], .kpi-cyan [style*="color"] {
+  color: rgba(255,255,255,0.8) !important;
+}

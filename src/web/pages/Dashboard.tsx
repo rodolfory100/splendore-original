@@ -158,10 +158,10 @@ export function Dashboard({ alunas, pagamentos, inadimplentes, onNavigate }: Pro
 
       {/* KPI CARDS — com número animado */}
       <motion.div variants={fadeUp} style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 14 }}>
-        <KpiCard label="MRR Potencial" value={fmt(animMrr)} sub={`${kpis.pagantes} pagantes`} color="#C9A86A" icon={Ic.bolt} trend={kpis.momPct} trendLabel="vs mês anterior" />
-        <KpiCard label={`Recebido — ${nomeMes}`} value={fmt(animRec)} sub={`${kpis.pctMeta}% da meta`} color="#16A34A" icon={Ic.check} trend={kpis.momPct} trendLabel="crescimento MoM" />
-        <KpiCard label="Em aberto" value={fmt(animRec2)} sub={`${kpis.inadimplentes} aluna${kpis.inadimplentes !== 1 ? "s" : ""} · taxa ${kpis.taxa}%`} color={kpis.inadimplentes > 0 ? "#DC2626" : "#16A34A"} icon={Ic.alert} />
-        <KpiCard label="Total de Alunas" value={String(animTotal)} sub={`${kpis.ativas} ativas · ${kpis.bolsistas} bolsistas`} color="#2563EB" icon={Ic.users} />
+        <KpiCard label="MRR Potencial" value={fmt(animMrr)} sub={`${kpis.pagantes} pagantes`} color="#fff" bgColor="linear-gradient(135deg,#6C63FF,#4F46E5)" icon={Ic.bolt} trend={kpis.momPct} trendLabel="vs mês anterior" />
+        <KpiCard label={`Recebido — ${nomeMes}`} value={fmt(animRec)} sub={`${kpis.pctMeta}% da meta`} color="#fff" bgColor="linear-gradient(135deg,#10B981,#059669)" icon={Ic.check} trend={kpis.momPct} trendLabel="crescimento MoM" />
+        <KpiCard label="Em aberto" value={fmt(animRec2)} sub={`${kpis.inadimplentes} aluna${kpis.inadimplentes !== 1 ? "s" : ""} · taxa ${kpis.taxa}%`} color="#fff" bgColor={kpis.inadimplentes > 0 ? "linear-gradient(135deg,#EF4444,#DC2626)" : "linear-gradient(135deg,#10B981,#059669)"} icon={Ic.alert} />
+        <KpiCard label="Total de Alunas" value={String(animTotal)} sub={`${kpis.ativas} ativas · ${kpis.bolsistas} bolsistas`} color="#fff" bgColor="linear-gradient(135deg,#3B82F6,#1D4ED8)" icon={Ic.users} />
       </motion.div>
 
       {/* SEGUNDA LINHA */}
@@ -373,25 +373,40 @@ export function Dashboard({ alunas, pagamentos, inadimplentes, onNavigate }: Pro
   );
 }
 
-function KpiCard({ label, value, sub, color, icon, trend, trendLabel }: { label: string; value: string; sub: string; color: string; icon: React.ReactNode; trend?: number; trendLabel?: string }) {
+function KpiCard({ label, value, sub, color, icon, trend, trendLabel, bgColor }: { label: string; value: string; sub: string; color: string; icon: React.ReactNode; trend?: number; trendLabel?: string; bgColor?: string }) {
   const trendPositive = (trend ?? 0) >= 0;
+  const isColored = !!bgColor;
   return (
-    <motion.div className="panel" variants={fadeUp} whileHover={{ y: -2, transition: { duration: 0.15 } }} style={{ padding: "16px 18px", cursor: "default" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
-        <motion.div whileHover={{ rotate: 10 }} style={{ width: 30, height: 30, borderRadius: 8, background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>{icon}</motion.div>
+    <motion.div variants={fadeUp} whileHover={{ y: -3, scale: 1.01, transition: { duration: 0.15 } }}
+      style={{
+        padding: "18px 20px", cursor: "default",
+        background: bgColor || "var(--surface)",
+        borderRadius: "var(--r-lg)",
+        border: isColored ? "none" : "1px solid var(--border)",
+        boxShadow: isColored ? `0 8px 24px ${bgColor}55` : "var(--shadow-sm)",
+        position: "relative", overflow: "hidden",
+      }}>
+      {isColored && (
+        <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.1)" }} />
+      )}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: isColored ? "rgba(255,255,255,0.75)" : "var(--text3)", textTransform: "uppercase", letterSpacing: 0.8 }}>{label}</div>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: isColored ? "rgba(255,255,255,0.2)" : `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", color: isColored ? "#fff" : color, flexShrink: 0 }}>{icon}</div>
       </div>
-      <div style={{ fontSize: 22, fontWeight: 900, color: "var(--text)", letterSpacing: -0.5, marginBottom: 4 }}>{value}</div>
+      <div style={{ fontSize: 26, fontWeight: 900, color: isColored ? "#fff" : "var(--text)", letterSpacing: -0.8, marginBottom: 6 }}>{value}</div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontSize: 11, color: "var(--text3)" }}>{sub}</div>
+        <div style={{ fontSize: 11, color: isColored ? "rgba(255,255,255,0.7)" : "var(--text3)" }}>{sub}</div>
         {trend !== undefined && (
-          <div style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, fontWeight: 700, color: trendPositive ? "var(--green)" : "var(--red)", background: trendPositive ? "var(--green-bg)" : "var(--red-bg)", padding: "2px 6px", borderRadius: 99 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, fontWeight: 700,
+            color: isColored ? "#fff" : (trendPositive ? "var(--green)" : "var(--red)"),
+            background: isColored ? "rgba(255,255,255,0.2)" : (trendPositive ? "var(--green-bg)" : "var(--red-bg)"),
+            padding: "2px 7px", borderRadius: 99 }}>
             {trendPositive ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="18 15 12 9 6 15"/></svg> : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9"/></svg>}
             {Math.abs(trend)}%
           </div>
         )}
       </div>
-      {trendLabel && trend !== undefined && <div style={{ fontSize: 9, color: "var(--text3)", marginTop: 2 }}>{trendLabel}</div>}
+      {trendLabel && trend !== undefined && <div style={{ fontSize: 9, color: isColored ? "rgba(255,255,255,0.6)" : "var(--text3)", marginTop: 2 }}>{trendLabel}</div>}
     </motion.div>
   );
 }
