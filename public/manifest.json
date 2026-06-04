@@ -1,0 +1,19 @@
+{
+  "name": "Splendore — Portal da Família",
+  "short_name": "Splendore",
+  "description": "Acompanhe sua filha na Splendore Escola de Dança",
+  "start_url": "/portal",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080B14",
+  "theme_color": "#080B14",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["education", "lifestyle"],
+  "lang": "pt-BR"
+}
