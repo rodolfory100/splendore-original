@@ -120,16 +120,16 @@ export function Sidebar({ currentPage, onNavigate, config, badges, mobileOpen, o
                   width: "100%", display: "flex", alignItems: "center", gap: 8,
                   padding: "7px 10px", borderRadius: 6, border: "none",
                   cursor: "pointer", textAlign: "left",
-                  background: isActive ? "rgba(184,150,62,0.12)" : "transparent",
-                  color: isActive ? "#B8963E" : "#5C5A54",
+                  background: isActive ? "rgba(108,99,255,0.25)" : "transparent",
+                  color: isActive ? "#A78BFA" : "#6B6999",
                   fontSize: 13, fontWeight: isActive ? 600 : 400,
                   fontFamily: "'Inter', sans-serif",
                   transition: "all 0.12s",
                   marginBottom: 1,
                   letterSpacing: -0.01,
                 }}
-                onMouseEnter={e => { if (!isActive) { const el = e.currentTarget; el.style.background = "rgba(255,255,255,0.05)"; el.style.color = "#E8E6E0"; } }}
-                onMouseLeave={e => { if (!isActive) { const el = e.currentTarget; el.style.background = "transparent"; el.style.color = "#5C5A54"; } }}
+                onMouseEnter={e => { if (!isActive) { const el = e.currentTarget; el.style.background = "rgba(108,99,255,0.15)"; el.style.color = "#C4B5FD"; } }}
+                onMouseLeave={e => { if (!isActive) { const el = e.currentTarget; el.style.background = "transparent"; el.style.color = "#6B6999"; } }}
               >
                 <span style={{ flexShrink: 0, opacity: isActive ? 1 : 0.6, display: "flex" }}>{nav.icon}</span>
                 <span style={{ flex: 1 }}>{nav.label}</span>
