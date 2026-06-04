@@ -1,0 +1,1 @@
+ALTER TABLE `alunas` ADD `bolsista` integer DEFAULT false;
