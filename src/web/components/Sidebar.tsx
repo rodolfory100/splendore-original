@@ -79,19 +79,19 @@ export function Sidebar({ currentPage, onNavigate, config, badges, mobileOpen, o
       )}
       <aside className={`sidebar ${mobileOpen ? "open" : ""}`}>
         {/* Logo */}
-        <div style={{ padding: "22px 20px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: "linear-gradient(135deg, #C9A86A, #A88340)",
+              width: 34, height: 34, borderRadius: 8,
+              background: "#B8963E",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 18, flexShrink: 0,
+              fontSize: 16, flexShrink: 0, letterSpacing: 0,
             }}>🩰</div>
             <div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: "#F8FAFC", letterSpacing: 0.5 }}>
-                Splendore
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 700, color: "#F5F4F0", letterSpacing: -0.3 }}>
+                {escola}
               </div>
-              <div style={{ fontSize: 10, color: "#475569", letterSpacing: 1, textTransform: "uppercase", marginTop: 1 }}>
+              <div style={{ fontSize: 10, color: "#5C5A54", letterSpacing: 0.3, textTransform: "uppercase", marginTop: 1, fontWeight: 500 }}>
                 Escola de Dança
               </div>
             </div>
@@ -99,11 +99,11 @@ export function Sidebar({ currentPage, onNavigate, config, badges, mobileOpen, o
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, padding: "12px 10px", overflowY: "auto" }}>
+        <nav style={{ flex: 1, padding: "8px 8px", overflowY: "auto" }}>
           {NAV.map((item, i) => {
             if ("section" in item && !("id" in item)) {
               return (
-                <div key={i} style={{ padding: "14px 10px 5px", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#334155" }}>
+                <div key={i} style={{ padding: "16px 8px 4px", fontSize: 9, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: "#3C3A35" }}>
                   {(item as any).section}
                 </div>
               );
@@ -117,28 +117,29 @@ export function Sidebar({ currentPage, onNavigate, config, badges, mobileOpen, o
                 key={nav.id}
                 onClick={() => { if (nav.id === "__monitor__") { onNavigate("monitor"); } else { onNavigate(nav.id); } }}
                 style={{
-                  width: "100%", display: "flex", alignItems: "center", gap: 10,
-                  padding: "9px 10px", borderRadius: 8, border: "none",
+                  width: "100%", display: "flex", alignItems: "center", gap: 8,
+                  padding: "7px 10px", borderRadius: 6, border: "none",
                   cursor: "pointer", textAlign: "left",
-                  background: isActive ? "rgba(201,168,106,0.15)" : "transparent",
-                  color: isActive ? "#C9A86A" : "#94A3B8",
-                  fontSize: 13, fontWeight: isActive ? 600 : 500,
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  transition: "all 0.15s",
+                  background: isActive ? "rgba(184,150,62,0.12)" : "transparent",
+                  color: isActive ? "#B8963E" : "#5C5A54",
+                  fontSize: 13, fontWeight: isActive ? 600 : 400,
+                  fontFamily: "'Inter', sans-serif",
+                  transition: "all 0.12s",
                   marginBottom: 1,
+                  letterSpacing: -0.01,
                 }}
-                onMouseEnter={e => { if (!isActive) { const el = e.currentTarget; el.style.background = "rgba(255,255,255,0.04)"; el.style.color = "#F1F5F9"; } }}
-                onMouseLeave={e => { if (!isActive) { const el = e.currentTarget; el.style.background = "transparent"; el.style.color = "#94A3B8"; } }}
+                onMouseEnter={e => { if (!isActive) { const el = e.currentTarget; el.style.background = "rgba(255,255,255,0.05)"; el.style.color = "#E8E6E0"; } }}
+                onMouseLeave={e => { if (!isActive) { const el = e.currentTarget; el.style.background = "transparent"; el.style.color = "#5C5A54"; } }}
               >
-                <span style={{ flexShrink: 0, opacity: isActive ? 1 : 0.7 }}>{nav.icon}</span>
+                <span style={{ flexShrink: 0, opacity: isActive ? 1 : 0.6, display: "flex" }}>{nav.icon}</span>
                 <span style={{ flex: 1 }}>{nav.label}</span>
                 {nav.badge && (
-                  <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: "2px 6px", borderRadius: 4, background: nav.badgeColor || "#C9A86A", color: "#0F172A" }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.3, padding: "2px 6px", borderRadius: 4, background: nav.badgeColor || "#B8963E", color: "#fff", opacity: 0.9 }}>
                     {nav.badge}
                   </span>
                 )}
                 {badgeCount > 0 && (
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 99, background: "#DC2626", color: "#fff", minWidth: 20, textAlign: "center" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 99, background: "#C0392B", color: "#fff", minWidth: 20, textAlign: "center" }}>
                     {badgeCount}
                   </span>
                 )}
@@ -148,14 +149,14 @@ export function Sidebar({ currentPage, onNavigate, config, badges, mobileOpen, o
         </nav>
 
         {/* User */}
-        <div style={{ padding: "14px 16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#C9A86A,#A88340)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#0F172A", flexShrink: 0 }}>
+        <div style={{ padding: "12px 14px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#B8963E", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
               {nome[0]?.toUpperCase()}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#F1F5F9", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nome}</div>
-              <div style={{ fontSize: 11, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{escola}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#E8E6E0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: -0.1 }}>{nome}</div>
+              <div style={{ fontSize: 10, color: "#3C3A35", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>{escola}</div>
             </div>
           </div>
         </div>
