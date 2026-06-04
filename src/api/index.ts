@@ -25,8 +25,8 @@ const mesAtual = () => { const d = new Date(); return `${d.getFullYear()}-${Stri
 
 // ─── SEGURANÇA: Web Crypto (nativo Cloudflare Workers) ───────────────────────
 // SEC-1: JWT_SECRET — fallback para dev, em produção configure JWT_SECRET no wrangler.json [vars]
-const JWT_SECRET_DEFAULT = c?.env?.JWT_SECRET || '';
-const getJwtSecret = (c?: any) => (c?.env?.JWT_SECRET as string) || JWT_SECRET_DEFAULT;
+const JWT_SECRET_DEFAULT = '';
+const getJwtSecret = (c?: any) => (c?.env?.JWT_SECRET as string) || '';
 
 async function hashSenha(senha: string): Promise<string> {
   const encoder = new TextEncoder();
