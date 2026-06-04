@@ -2832,5 +2832,17 @@ app.put('/emprestimos/:id/devolver', async (c) => {
   return c.json({ ok: true });
 });
 
+
+// ─── GLOBAL ERROR HANDLER ────────────────────────────────────────────────────
+app.onError((err, c) => {
+  const id = crypto.randomUUID();
+  console.error(`[ERROR ${id}]`, err.message, err.stack);
+  return c.json({ error: 'Erro interno do servidor', id }, 500);
+});
+
+app.notFound((c) => {
+  return c.json({ error: 'Rota não encontrada', path: new URL(c.req.url).pathname }, 404);
+});
+
 export default app;
 
