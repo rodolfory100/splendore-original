@@ -11,7 +11,7 @@ app.use(cors({
   origin: (origin) => {
     // Permite localhost (dev), runable.site e domínio próprio
     if (!origin) return origin;
-    if (origin.includes('localhost') || origin.includes('runable.site') || origin.includes('balletsplendore')) return origin;
+    if (origin === 'http://localhost:5173' || origin === 'https://splendore.rodolfory100.workers.dev' || origin === 'https://splendore.uk') return origin;
     return null;
   },
   allowMethods: ['GET','POST','PUT','DELETE','OPTIONS'],
@@ -25,7 +25,7 @@ const mesAtual = () => { const d = new Date(); return `${d.getFullYear()}-${Stri
 
 // ─── SEGURANÇA: Web Crypto (nativo Cloudflare Workers) ───────────────────────
 // SEC-1: JWT_SECRET — fallback para dev, em produção configure JWT_SECRET no wrangler.json [vars]
-const JWT_SECRET_DEFAULT = 'splendore_jwt_secret_2026_producao';
+const JWT_SECRET_DEFAULT = c?.env?.JWT_SECRET || '';
 const getJwtSecret = (c?: any) => (c?.env?.JWT_SECRET as string) || JWT_SECRET_DEFAULT;
 
 async function hashSenha(senha: string): Promise<string> {
