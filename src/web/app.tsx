@@ -1,7 +1,6 @@
 import { Route, Switch } from "wouter";
 import { useState, useEffect, useCallback } from "react";
 import { Provider } from "./components/provider";
-import { AgentFeedback, RunableBadge } from "@runablehq/website-runtime";
 import { Sidebar } from "./components/Sidebar";
 import { ToastContainer, useToast } from "./components/Toast";
 import { LoginPage } from "./pages/LoginPage";
@@ -204,8 +203,6 @@ function App() {
         <Route path="/contratos/assinar/:token" component={AssinarContratoPage} />
         <Route path="/" component={Sistema} />
       </Switch>
-      {import.meta.env.DEV && <AgentFeedback />}
-      {<RunableBadge />}
     </Provider>
   );
 }
