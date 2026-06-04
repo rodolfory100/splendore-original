@@ -1,7 +1,22 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "splendore",
-  "main": "src/api/index.ts",
-  "compatibility_date": "2024-09-23",
-  "compatibility_flags": ["nodejs_compat"]
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "splendore",
+	"main": "src/api/index.ts",
+	"compatibility_date": "2024-09-23",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "splendoredb",
+			"database_id": "0c895f08-7805-4fec-86db-d90381f226ce"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "RATE_LIMIT",
+			"id": "d93a97f725cf4467a4fffdcd8a270f92"
+		}
+	]
 }

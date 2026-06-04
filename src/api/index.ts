@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc, like, or, ne, isNull } from "drizzle-orm";
 import * as schema from "./database/schema";
 
-type Bindings = { DB: D1Database; BUCKET: R2Bucket };
+type Bindings = { DB: D1Database; BUCKET: R2Bucket; RATE_LIMIT: KVNamespace };
 const app = new Hono<{ Bindings: Bindings }>().basePath("api");
 
 app.use(cors({
@@ -70,18 +70,18 @@ async function verificarJWT(token: string, secret?: string): Promise<any | null>
   } catch { return null; }
 }
 
-// Rate limiting em memória (por IP)
-const tentativasLogin = new Map<string, { count: number; primeiraTs: number }>();
-function verificarRateLimit(ip: string): boolean {
+// Rate limiting persistente via Cloudflare KV
+async function verificarRateLimitKV(ip: string, kv: KVNamespace): Promise<boolean> {
+  const key = `rl:${ip}`;
   const agora = Date.now();
-  const janela = 15 * 60 * 1000;
-  const entrada = tentativasLogin.get(ip);
-  if (!entrada || agora - entrada.primeiraTs > janela) {
-    tentativasLogin.set(ip, { count: 1, primeiraTs: agora });
+  const raw = await kv.get(key);
+  const entrada = raw ? JSON.parse(raw) : null;
+  if (!entrada || agora - entrada.primeiraTs > 900000) {
+    await kv.put(key, JSON.stringify({ count: 1, primeiraTs: agora }), { expirationTtl: 900 });
     return true;
   }
   if (entrada.count >= 10) return false;
-  entrada.count++;
+  await kv.put(key, JSON.stringify({ count: entrada.count + 1, primeiraTs: entrada.primeiraTs }), { expirationTtl: 900 });
   return true;
 }
 
@@ -108,7 +108,7 @@ app.get('/ping', (c) => c.json({ ok: true, ts: Date.now() }));
 // ─── AUTH SISTEMA (diretora) ─────────────────────────────────────────────────
 app.post('/auth/login', async (c) => {
   const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
-  if (!verificarRateLimit(ip)) {
+  if (!await verificarRateLimitKV(ip, c.env.RATE_LIMIT)) {
     return c.json({ ok: false, error: 'Muitas tentativas. Aguarde 15 minutos.' }, 429);
   }
   const { senha } = await c.req.json();
