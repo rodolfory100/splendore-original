@@ -36,6 +36,7 @@ const NAV: NavEntry[] = [
   { id: "presenca",  label: "Presença",         icon: Icons.check },
   { section: "Financeiro" },
   { id: "cobrancas",     label: "Cobranças WhatsApp", icon: Icons.bell,   badgeId: "badge-inad" },
+  { id: "boletos_internos", label: "Boletos Internos", icon: Icons.credit },
   { id: "cobrancas_efi", label: "Boletos & Pix Efí",  icon: Icons.bank },
   { id: "mensalidades",  label: "Mensalidades",        icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg> },
   { id: "pagamentos",    label: "Pagamentos",         icon: Icons.credit },

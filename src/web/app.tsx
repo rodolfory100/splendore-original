@@ -15,6 +15,7 @@ import { AdminPage } from "./pages/AdminPage";
 import { IAPage } from "./pages/IAPage";
 import { SemRematriculaPage } from "./pages/SemRematriculaPage";
 import { CobrancasEfiPage } from "./pages/CobrancasEfiPage";
+import { BoletosInternosPage } from "./pages/BoletosInternosPage";
 import { MensalidadesPage } from "./pages/MensalidadesPage";
 import { PortalPage } from "./pages/PortalPage";
 import { ProfessorPage } from "./pages/ProfessorPage";
@@ -94,7 +95,8 @@ function Sistema() {
 
   const breadcrumbs: Record<string, string> = {
     dashboard: "Visão Geral", alunos: "Alunas", turmas: "Turmas & Horários",
-    cobrancas: "Cobranças WhatsApp", cobrancas_efi: "Boletos & Pix — Efí Bank", pagamentos: "Pagamentos", relatorios: "Relatórios",
+    cobrancas: "Cobranças WhatsApp", cobrancas_efi: "Boletos & Pix — Efí Bank",
+    boletos_internos: "Boletos Internos", pagamentos: "Pagamentos", relatorios: "Relatórios",
     mensalidades: "Mensalidades",
     renovacoes: "Renovações", suspensos: "Sem Rematrícula", presenca: "Presença",
     avisos: "Avisos em Massa", admin: "Administração", ia_assistente: "✦ Assistente IA",
@@ -175,6 +177,7 @@ function Sistema() {
           {page === "ia_assistente" && <IAPage alunas={alunas} pagamentos={pagamentos} inadimplentes={inadimplentes} config={config} onRefresh={refresh} onToast={showToast} />}
           {page === "importacao" && <ImportacaoPage onRefresh={refresh} onToast={showToast} onNavigate={navigate} />}
           {page === "suspensos" && <SemRematriculaPage config={config} onRefresh={refresh} onToast={showToast} />}
+          {page === "boletos_internos" && <BoletosInternosPage alunas={alunas} inadimplentes={inadimplentes} onToast={showToast} />}
           {page === "cobrancas_efi" && <CobrancasEfiPage inadimplentes={inadimplentes} config={config} onRefresh={refresh} onToast={showToast} onNavigate={navigate} />}
           {page === "mensalidades" && <MensalidadesPage alunas={alunas} onToast={showToast} onRefresh={refresh} />}
           {page === "turmas" && <TurmasPage turmas={turmas} alunas={alunas} onRefresh={refresh} onToast={showToast} />}
