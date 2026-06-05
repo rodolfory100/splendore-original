@@ -16,7 +16,7 @@ const STATUS_STYLE: Record<string, { color: string; bg: string; label: string }>
   expirado:  { color: "#a8998a", bg: "rgba(168,153,138,0.1)", label: "⏰ Expirado"   },
 };
 
-export function CobrancasEfiPage({ inadimplentes, config, onRefresh, onToast }: Props) {
+export function CobrancasEfiPage({ inadimplentes, config, onRefresh, onToast, onNavigate }: Props) {
   const [cobrancas, setCobrancas] = useState<any[]>([]);
   const [loadingCobrancas, setLoadingCobrancas] = useState(true);
   const [gerando, setGerando] = useState<string | null>(null);
@@ -164,8 +164,7 @@ export function CobrancasEfiPage({ inadimplentes, config, onRefresh, onToast }: 
                     <td>
                       <button
                         onClick={() => { setModalAluna(a); setValorCob(String(a.valor)); setTipoCob("pix"); }}
-                        disabled={!temEfi}
-                        style={{ padding: "5px 12px", background: temEfi ? "#b8923a" : "#e8e4dc", border: "none", borderRadius: 5, color: temEfi ? "#fff" : "#a8998a", fontSize: 11, fontWeight: 600, cursor: temEfi ? "pointer" : "default", fontFamily: "'DM Sans', sans-serif" }}
+                        style={{ padding: "5px 12px", background: temEfi ? "#4F46E5" : "#6C63FF", border: "none", borderRadius: 5, color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}
                       >
                         🧾 Cobrar
                       </button>
@@ -283,8 +282,8 @@ export function CobrancasEfiPage({ inadimplentes, config, onRefresh, onToast }: 
                 Cancelar
               </button>
               <button
-                onClick={handleGerar}
-                disabled={!!gerando || (tipoCob === "boleto" && !modalAluna.cpfResponsavel)}
+                onClick={!temEfi ? () => { setModalAluna(null); if(onNavigate) onNavigate("admin"); onToast("Configure a Efi Bank em Administração → Efi Bank", "gold"); } : handleGerar}
+                disabled={temEfi && (!!gerando || (tipoCob === "boleto" && !modalAluna.cpfResponsavel))}
                 style={{ padding: "10px 22px", background: gerando ? "#e8e4dc" : "#b8923a", border: "none", borderRadius: 6, color: gerando ? "#a8998a" : "#fff", fontSize: 12, fontWeight: 700, cursor: gerando ? "default" : "pointer", fontFamily: "'DM Sans', sans-serif" }}
               >
                 {gerando ? "Gerando..." : `✦ Gerar ${tipoCob === "boleto" ? "Boleto" : "Pix"}`}

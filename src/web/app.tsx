@@ -175,7 +175,7 @@ function Sistema() {
           {page === "ia_assistente" && <IAPage alunas={alunas} pagamentos={pagamentos} inadimplentes={inadimplentes} config={config} onRefresh={refresh} onToast={showToast} />}
           {page === "importacao" && <ImportacaoPage onRefresh={refresh} onToast={showToast} onNavigate={navigate} />}
           {page === "suspensos" && <SemRematriculaPage config={config} onRefresh={refresh} onToast={showToast} />}
-          {page === "cobrancas_efi" && <CobrancasEfiPage inadimplentes={inadimplentes} config={config} onRefresh={refresh} onToast={showToast} />}
+          {page === "cobrancas_efi" && <CobrancasEfiPage inadimplentes={inadimplentes} config={config} onRefresh={refresh} onToast={showToast} onNavigate={navigate} />}
           {page === "mensalidades" && <MensalidadesPage alunas={alunas} onToast={showToast} onRefresh={refresh} />}
           {page === "turmas" && <TurmasPage turmas={turmas} alunas={alunas} onRefresh={refresh} onToast={showToast} />}
           {page === "presenca" && <PresencaPage turmas={turmas} alunas={alunas} onToast={showToast} />}
