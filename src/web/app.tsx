@@ -165,7 +165,7 @@ function Sistema() {
         {/* Content */}
         <div style={{ padding: "28px 32px" }}>
           {page === "dashboard" && <Dashboard alunas={alunas} pagamentos={pagamentos} inadimplentes={inadimplentes} onNavigate={navigate} />}
-          {page === "alunos" && <AlunosPage alunas={alunas} pagamentos={pagamentos} turmas={turmas} onRefresh={refresh} onToast={showToast} />}
+          {page === "alunos" && <AlunosPage alunas={alunas} pagamentos={pagamentos} turmas={turmas} onRefresh={refresh} onToast={showToast} onNavigate={navigate} />}
           {page === "cobrancas" && <CobrancasPage inadimplentes={inadimplentes} config={config} onRefresh={refresh} onToast={showToast} />}
           {page === "pagamentos" && <PagamentosPage pagamentos={pagamentos} alunas={alunas} config={config} onRefresh={refresh} onToast={showToast} onOpenPagamento={() => setPagModalOpen(true)} />}
           {page === "relatorios" && <RelatoriosPage alunas={alunas} pagamentos={pagamentos} inadimplentes={inadimplentes} config={config} />}

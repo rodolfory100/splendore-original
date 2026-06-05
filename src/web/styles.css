@@ -107,7 +107,7 @@ body {
 
 .sidebar {
   position: fixed; left: 0; top: 0; width: 252px; height: 100vh;
-  background: linear-gradient(180deg, #1E1B4B 0%, #2D2A6E 100%);
+  background: linear-gradient(180deg, #0D0B2A 0%, #1A1650 50%, #0D0B2A 100%);
   display: flex; flex-direction: column;
   z-index: 100;
   transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);

@@ -23,6 +23,7 @@ export function AlunosPage({ alunas, pagamentos, turmas, onRefresh, onToast }: P
   const [fMod, setFMod] = useState("");
   const [fStat, setFStat] = useState("");
   const [modal, setModal] = useState<"aluna"|"pagamento"|"bolsista"|"turma"|null>(null);
+  const [boletoBanner, setBoletoBanner] = useState<{nome:string;valor:number}|null>(null);
   const [turmaAluna, setTurmaAluna] = useState<Aluna|null>(null);
   const [turmaForm, setTurmaForm] = useState({ modalidade: "", nivel: "", turmaId: "" });
   const [bolsistaAluna, setBolsistaAluna] = useState<Aluna|null>(null);
@@ -212,6 +213,19 @@ export function AlunosPage({ alunas, pagamentos, turmas, onRefresh, onToast }: P
 
   return (
     <div className="animate-fade-up">
+      {/* Banner boleto após cadastro */}
+      {boletoBanner && (
+        <div style={{ background: "linear-gradient(135deg,#6C63FF,#4F46E5)", borderRadius: 14, padding: "18px 22px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 4px 20px rgba(108,99,255,0.35)" }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>✅ {boletoBanner.nome} cadastrada com sucesso!</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", marginTop: 4 }}>Deseja gerar o boleto ou Pix de R${boletoBanner.valor.toFixed(2).replace(".",",")} agora?</div>
+          </div>
+          <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+            <button onClick={() => setBoletoBanner(null)} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.3)", background: "transparent", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Agora não</button>
+            <button onClick={() => { setBoletoBanner(null); if (onNavigate) onNavigate("cobrancas_efi"); }} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#fff", color: "#4F46E5", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>💳 Gerar Boleto/Pix</button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="section-header">
         <div>
