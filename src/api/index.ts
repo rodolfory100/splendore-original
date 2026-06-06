@@ -64,9 +64,25 @@ app.get("/alunas", async c => {
   return c.json(mapped);
 });
 
+const mapAluna = (b: any) => ({
+  id: b.id, nome: b.nome, responsavel: b.responsavel,
+  whatsapp: b.whatsapp, email: b.email,
+  cpf_responsavel: b.cpfResponsavel || b.cpf_responsavel,
+  cpf_responsavel2: b.cpfResponsavel2 || b.cpf_responsavel2,
+  modalidade: b.modalidade, nivel: b.nivel,
+  valor: b.valor, valor_cheio: b.valorCheio || b.valor_cheio || b.valor,
+  vencimento: b.vencimento, nascimento: b.nascimento,
+  turma_id: b.turmaId || b.turma_id,
+  observacao: b.observacao,
+  autoriza_imagem: b.autorizaImagem ?? b.autoriza_imagem ?? true,
+  ativo: b.ativo ?? true, bolsista: b.bolsista ?? false,
+  suspenso: b.suspenso ?? false,
+  data_cadastro: b.dataCadastro || b.data_cadastro,
+});
+
 app.post("/alunas", async c => {
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").insert(body);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").insert(mapAluna(body));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -74,7 +90,7 @@ app.post("/alunas", async c => {
 app.put("/alunas/:id", async c => {
   const id = c.req.param("id");
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").update(body).eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").update(mapAluna(body)).eq("id", id);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
