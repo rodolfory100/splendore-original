@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { fmt, initials, mesAtual, toggleBolsista, genId, getAvaliacoes, addAvaliacao } from "../lib/api";
 import { saveAluna, updateAluna, deleteAluna, savePagamento } from "../lib/api";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { ContratoModal } from "../components/ContratoModal";
 import type { Aluna, Pagamento, Turma } from "../types";
 
 const chipClass = (m: string) => m==='Ballet'?'chip-ballet':m==='Jazz'?'chip-jazz':m==='Danças Urbanas'?'chip-urbanas':'chip-outro';
@@ -24,6 +25,7 @@ export function AlunosPage({ alunas, pagamentos, turmas, onRefresh, onToast }: P
   const [fStat, setFStat] = useState("");
   const [modal, setModal] = useState<"aluna"|"pagamento"|"bolsista"|"turma"|null>(null);
   const [boletoBanner, setBoletoBanner] = useState<{nome:string;valor:number}|null>(null);
+  const [contratoAluna, setContratoAluna] = useState<any|null>(null);
   const [turmaAluna, setTurmaAluna] = useState<Aluna|null>(null);
   const [turmaForm, setTurmaForm] = useState({ modalidade: "", nivel: "", turmaId: "" });
   const [bolsistaAluna, setBolsistaAluna] = useState<Aluna|null>(null);
@@ -911,6 +913,14 @@ export function AlunosPage({ alunas, pagamentos, turmas, onRefresh, onToast }: P
         onConfirm={confirmDeleteAluna}
         onCancel={() => setConfirmDelete(null)}
       />
+    {contratoAluna && (
+      <ContratoModal
+        aluna={contratoAluna}
+        onClose={() => setContratoAluna(null)}
+        onSuccess={() => { setContratoAluna(null); onRefresh(); }}
+        onToast={onToast}
+      />
+    )}
     </div>
   );
 }
