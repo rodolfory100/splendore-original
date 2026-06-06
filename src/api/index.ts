@@ -251,4 +251,27 @@ app.put("/parcelas/:id/pagar", async c => {
   return c.json({ ok: true });
 });
 
+
+app.get("/mensalidades/:alunaId", async c => {
+  const alunaId = c.req.param("alunaId");
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").eq("aluna_id", alunaId).order("mes");
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(data || []);
+});
+
+app.post("/mensalidades", async c => {
+  const body = await c.req.json();
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert({ id: genId(), ...body });
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+
+app.delete("/mensalidades/:id", async c => {
+  const id = c.req.param("id");
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").delete().eq("id", id);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+
 export default app;
