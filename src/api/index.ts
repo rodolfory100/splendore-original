@@ -3,12 +3,11 @@ import { cors } from "hono/cors";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://orovbbxhzizbpphggqxa.supabase.co";
-const SUPABASE_KEY = (globalThis as any).SUPABASE_SECRET_KEY || "";
 
-type Bindings = { RATE_LIMIT: KVNamespace };
+type Bindings = { RATE_LIMIT: KVNamespace; SUPABASE_SECRET_KEY: string };
 const app = new Hono<{ Bindings: Bindings }>().basePath("api");
 
-const sb = () => createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = (key: string) => createClient(SUPABASE_URL, key);
 
 app.use(cors({
   origin: (origin) => {
@@ -27,7 +26,7 @@ app.notFound(c => c.json({ error: "Not found" }, 404));
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 app.post("/login", async c => {
   const { senha } = await c.req.json();
-  const { data } = await sb().from("config").select("senha").eq("id","main").single();
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("id","main").single();
   if (!data || data.senha !== senha) return c.json({ error: "Senha incorreta" }, 401);
   const token = btoa(`splendore:${Date.now()}:${Math.random()}`);
   return c.json({ token });
@@ -35,27 +34,39 @@ app.post("/login", async c => {
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 app.get("/config", async c => {
-  const { data } = await sb().from("config").select("*").eq("id","main").single();
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("*").eq("id","main").single();
   return c.json(data || {});
 });
 
 app.put("/config", async c => {
   const body = await c.req.json();
-  const { error } = await sb().from("config").upsert({ id: "main", ...body });
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").upsert({ id: "main", ...body });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 
 // ── ALUNAS ────────────────────────────────────────────────────────────────────
 app.get("/alunas", async c => {
-  const { data, error } = await sb().from("alunas").select("*").order("nome");
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").order("nome");
   if (error) return c.json({ error: error.message }, 500);
-  return c.json(data || []);
+  const mapped = (data || []).map((a: any) => ({
+    id: a.id, nome: a.nome, responsavel: a.responsavel,
+    whatsapp: a.whatsapp, email: a.email,
+    cpfResponsavel: a.cpf_responsavel, cpfResponsavel2: a.cpf_responsavel2,
+    modalidade: a.modalidade, nivel: a.nivel,
+    valor: a.valor, valorCheio: a.valor_cheio,
+    vencimento: a.vencimento, nascimento: a.nascimento,
+    turmaId: a.turma_id, observacao: a.observacao,
+    autorizaImagem: a.autoriza_imagem, ativo: a.ativo,
+    bolsista: a.bolsista, suspenso: a.suspenso,
+    dataCadastro: a.data_cadastro,
+  }));
+  return c.json(mapped);
 });
 
 app.post("/alunas", async c => {
   const body = await c.req.json();
-  const { error } = await sb().from("alunas").insert(body);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").insert(body);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -63,28 +74,28 @@ app.post("/alunas", async c => {
 app.put("/alunas/:id", async c => {
   const id = c.req.param("id");
   const body = await c.req.json();
-  const { error } = await sb().from("alunas").update(body).eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").update(body).eq("id", id);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 
 app.delete("/alunas/:id", async c => {
   const id = c.req.param("id");
-  const { error } = await sb().from("alunas").update({ ativo: false, suspenso: true }).eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").update({ ativo: false, suspenso: true }).eq("id", id);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 
 // ── TURMAS ────────────────────────────────────────────────────────────────────
 app.get("/turmas", async c => {
-  const { data, error } = await sb().from("turmas").select("*").order("nome");
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").select("*").order("nome");
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data || []);
 });
 
 app.post("/turmas", async c => {
   const body = await c.req.json();
-  const { error } = await sb().from("turmas").insert(body);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").insert(body);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -92,28 +103,28 @@ app.post("/turmas", async c => {
 app.put("/turmas/:id", async c => {
   const id = c.req.param("id");
   const body = await c.req.json();
-  const { error } = await sb().from("turmas").update(body).eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").update(body).eq("id", id);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 
 // ── PAGAMENTOS ────────────────────────────────────────────────────────────────
 app.get("/pagamentos", async c => {
-  const { data, error } = await sb().from("pagamentos").select("*").order("created_at", { ascending: false });
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").order("created_at", { ascending: false });
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data || []);
 });
 
 app.post("/pagamentos", async c => {
   const body = await c.req.json();
-  const { error } = await sb().from("pagamentos").insert(body);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert(body);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 
 app.delete("/pagamentos/:id", async c => {
   const id = c.req.param("id");
-  const { error } = await sb().from("pagamentos").delete().eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").delete().eq("id", id);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -121,16 +132,16 @@ app.delete("/pagamentos/:id", async c => {
 // ── CONTRATOS & PARCELAS ──────────────────────────────────────────────────────
 app.get("/contratos/:alunaId", async c => {
   const alunaId = c.req.param("alunaId");
-  const { data, error } = await sb().from("contratos").select("*, parcelas(*)").eq("aluna_id", alunaId).order("created_at", { ascending: false });
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("contratos").select("*, parcelas(*)").eq("aluna_id", alunaId).order("created_at", { ascending: false });
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data || []);
 });
 
 app.post("/contratos", async c => {
   const { contrato, parcelas } = await c.req.json();
-  const { error: ce } = await sb().from("contratos").insert(contrato);
+  const { error: ce } = await sb(c.env.SUPABASE_SECRET_KEY).from("contratos").insert(contrato);
   if (ce) return c.json({ error: ce.message }, 500);
-  const { error: pe } = await sb().from("parcelas").insert(parcelas);
+  const { error: pe } = await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").insert(parcelas);
   if (pe) return c.json({ error: pe.message }, 500);
   return c.json({ ok: true });
 });
@@ -138,7 +149,7 @@ app.post("/contratos", async c => {
 app.put("/parcelas/:id", async c => {
   const id = c.req.param("id");
   const body = await c.req.json();
-  const { error } = await sb().from("parcelas").update(body).eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").update(body).eq("id", id);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -146,8 +157,8 @@ app.put("/parcelas/:id", async c => {
 app.get("/inadimplentes", async c => {
   const hoje = new Date();
   const mes = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
-  const { data: alunas } = await sb().from("alunas").select("*").eq("ativo", true).eq("bolsista", false);
-  const { data: pags } = await sb().from("pagamentos").select("aluna_id,mes");
+  const { data: alunas } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("ativo", true).eq("bolsista", false);
+  const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("aluna_id,mes");
   const pagSet = new Set((pags||[]).map((p:any) => `${p.aluna_id}:${p.mes}`));
   const inad = (alunas||[]).filter((a:any) => !pagSet.has(`${a.id}:${mes}`));
   return c.json(inad.map((a:any) => ({ ...a, valor: a.valor || 160, modalidade: a.modalidade || "Ballet" })));
