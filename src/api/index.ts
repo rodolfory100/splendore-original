@@ -164,4 +164,33 @@ app.get("/inadimplentes", async c => {
   return c.json(inad.map((a:any) => ({ ...a, valor: a.valor || 160, modalidade: a.modalidade || "Ballet" })));
 });
 
+app.get("/renovacoes", async c => {
+  return c.json([]);
+});
+
+app.get("/arquivo-morto", async c => {
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("ativo", false);
+  return c.json(data || []);
+});
+
+app.get("/avisos", async c => {
+  return c.json([]);
+});
+
+app.post("/avisos", async c => {
+  return c.json({ ok: true });
+});
+
+app.get("/cobrancas", async c => {
+  return c.json([]);
+});
+
+app.post("/auth/login", async c => {
+  const { senha } = await c.req.json();
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("id","main").single();
+  if (!data || data.senha !== senha) return c.json({ error: "Senha incorreta" }, 401);
+  const token = btoa("splendore:" + Date.now());
+  return c.json({ token });
+});
+
 export default app;
