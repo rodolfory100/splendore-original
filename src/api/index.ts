@@ -274,4 +274,78 @@ app.delete("/mensalidades/:id", async c => {
   return c.json({ ok: true });
 });
 
+
+app.get("/cameras", async c => {
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").select("*").order("nome");
+  return c.json(data || []);
+});
+app.post("/cameras", async c => {
+  const body = await c.req.json();
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").insert(body);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+app.put("/cameras/:id", async c => {
+  const id = c.req.param("id");
+  const body = await c.req.json();
+  await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").update(body).eq("id", id);
+  return c.json({ ok: true });
+});
+app.delete("/cameras/:id", async c => {
+  const id = c.req.param("id");
+  await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").update({ ativo: false }).eq("id", id);
+  return c.json({ ok: true });
+});
+app.get("/estoque", async c => {
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").select("*").order("nome");
+  return c.json(data || []);
+});
+app.post("/estoque", async c => {
+  const body = await c.req.json();
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").insert(body);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+app.put("/estoque/:id", async c => {
+  const id = c.req.param("id");
+  const body = await c.req.json();
+  await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").update(body).eq("id", id);
+  return c.json({ ok: true });
+});
+app.delete("/estoque/:id", async c => {
+  const id = c.req.param("id");
+  await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").delete().eq("id", id);
+  return c.json({ ok: true });
+});
+app.get("/emprestimos", async c => {
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("emprestimos").select("*").order("created_at", { ascending: false });
+  return c.json(data || []);
+});
+app.post("/emprestimos", async c => {
+  const body = await c.req.json();
+  await sb(c.env.SUPABASE_SECRET_KEY).from("emprestimos").insert(body);
+  return c.json({ ok: true });
+});
+app.put("/emprestimos/:id/devolver", async c => {
+  const id = c.req.param("id");
+  const hoje = new Date().toISOString().split("T")[0];
+  await sb(c.env.SUPABASE_SECRET_KEY).from("emprestimos").update({ devolvido: true, data_retorno: hoje }).eq("id", id);
+  return c.json({ ok: true });
+});
+app.get("/alertas", async c => {
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("alertas").select("*").order("created_at", { ascending: false }).limit(50);
+  return c.json(data || []);
+});
+app.post("/alertas", async c => {
+  const body = await c.req.json();
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("alertas").insert({ id: genId(), ...body });
+  return c.json({ ok: true });
+});
+app.put("/alertas/:id/resolver", async c => {
+  const id = c.req.param("id");
+  await sb(c.env.SUPABASE_SECRET_KEY).from("alertas").update({ resolvido: true }).eq("id", id);
+  return c.json({ ok: true });
+});
+
 export default app;
