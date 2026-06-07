@@ -531,4 +531,36 @@ app.get("/financeiro/fluxo", async c => {
   return c.json(fluxo);
 });
 
+
+app.get("/analytics", async c => { return c.json({}); });
+app.get("/avaliacoes", async c => { return c.json([]); });
+app.post("/avaliacoes", async c => { return c.json({ ok: true }); });
+app.put("/config/senha", async c => {
+  const { senhaAtual, novaSenha } = await c.req.json();
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("id","main").single();
+  if (!data || data.senha !== senhaAtual) return c.json({ error: "Senha atual incorreta" }, 401);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("config").update({ senha: novaSenha }).eq("id","main");
+  return c.json({ ok: true });
+});
+app.post("/config/senha", async c => {
+  const { senhaAtual, novaSenha } = await c.req.json();
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("id","main").single();
+  if (!data || data.senha !== senhaAtual) return c.json({ error: "Senha atual incorreta" }, 401);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("config").update({ senha: novaSenha }).eq("id","main");
+  return c.json({ ok: true });
+});
+app.post("/efi/boleto", async c => { return c.json({ error: "Efi não configurado" }, 400); });
+app.post("/efi/pix", async c => { return c.json({ error: "Efi não configurado" }, 400); });
+app.post("/importar", async c => { return c.json({ ok: true, importados: 0 }); });
+app.post("/mensalidades/editar-lote", async c => { return c.json({ ok: true, atualizados: 0 }); });
+app.get("/metricas/retencao", async c => { return c.json({ retencao: 0, churn: 0, novas: 0 }); });
+app.post("/portal/auth", async c => { return c.json({ ok: false, error: "Portal não configurado" }); });
+app.post("/portal/enviar-comprovante", async c => { return c.json({ ok: true }); });
+app.get("/relatorios/financeiro", async c => { return c.json({}); });
+app.get("/responsaveis", async c => { return c.json([]); });
+app.get("/sem-rematricula", async c => {
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("suspenso", true);
+  return c.json(data || []);
+});
+
 export default app;
