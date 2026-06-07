@@ -254,9 +254,10 @@ app.put("/parcelas/:id/pagar", async c => {
 
 app.get("/mensalidades/:alunaId", async c => {
   const alunaId = c.req.param("alunaId");
-  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").eq("aluna_id", alunaId).order("mes");
+  const ano = c.req.query("ano") || new Date().getFullYear().toString();
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").eq("aluna_id", alunaId).like("mes", `${ano}-%`).order("mes");
   if (error) return c.json({ error: error.message }, 500);
-  return c.json(data || []);
+  return c.json({ mensalidades: data || [] });
 });
 
 app.post("/mensalidades", async c => {
@@ -433,8 +434,9 @@ Quando sugerir mensagens de cobrança, faça de forma simpática e profissional.
 });
 
 
-app.post("/mensalidades/gerar", async c => {
-  const { alunaId, ano } = await c.req.json();
+app.post("/mensalidades/gerar/:alunaId", async c => {
+  const alunaId = c.req.param("alunaId");
+  const { ano } = await c.req.json().catch(() => ({}));
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
   const { data: aluna } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("id", alunaId).single();
   if (!aluna) return c.json({ error: "Aluna não encontrada" }, 404);
