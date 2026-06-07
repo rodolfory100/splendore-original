@@ -503,8 +503,8 @@ app.delete("/despesas/:id", async c => {
 app.get("/financeiro/dre", async c => {
   const mes = c.req.query("mes") || new Date().toISOString().slice(0,7);
   const ano = mes.slice(0,4);
-  const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").like("mes", ano + "-%");
-  const { data: desps } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").like("mes", ano + "-%");
+  const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").gte("mes", ano + "-01").lte("mes", ano + "-12");
+  const { data: desps } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").select("*").gte("mes", ano + "-01").lte("mes", ano + "-12");
   const meses = ["01","02","03","04","05","06","07","08","09","10","11","12"];
   const dre = meses.map(m => {
     const mesStr = ano + "-" + m;
@@ -518,8 +518,8 @@ app.get("/financeiro/dre", async c => {
 });
 
 app.get("/financeiro/fluxo", async c => {
-  const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").order("data", { ascending: false }).limit(100);
-  const { data: desps } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").select("*").order("data", { ascending: false }).limit(100);
+  const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").not("data","is",null).order("data", { ascending: false }).limit(50);
+  const { data: desps } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").select("*").order("data", { ascending: false }).limit(50);
   const entradas = (pags||[]).map((p:any) => ({ ...p, tipo: "entrada", descricao: "Mensalidade" }));
   const saidas = (desps||[]).map((d:any) => ({ ...d, tipo: "saida" }));
   const fluxo = [...entradas, ...saidas].sort((a,b) => (b.data||"").localeCompare(a.data||""));
