@@ -972,4 +972,194 @@ app.post("/fila/enfileirar-lote", async c => {
   });
 });
 
+
+// ═══════════════════════════════════════════════════════════════
+// CACHE DE PERFIL DE RISCO — Evita re-análise desnecessária
+// ═══════════════════════════════════════════════════════════════
+
+async function getPerfilRiscoCache(sb_: any, alunaId: string) {
+  const { data } = await sb_
+    .from("cache_perfil_risco")
+    .select("*")
+    .eq("aluna_id", alunaId)
+    .gt("expires_at", new Date().toISOString())
+    .single();
+  return data;
+}
+
+async function salvarPerfilRiscoCache(sb_: any, alunaId: string, perfil: any) {
+  const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+  await sb_.from("cache_perfil_risco").upsert({
+    aluna_id: alunaId,
+    score: perfil.score,
+    nivel: perfil.nivel,
+    motivos: perfil.motivos,
+    ltv_12meses: perfil.ltv12meses || 0,
+    taxa_retencao: perfil.taxaRetencao || 0,
+    expires_at: expiresAt
+  });
+}
+
+async function registrarAlerta(sb_: any, tipo: string, severidade: string, mensagem: string, payload?: any) {
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  await sb_.from("alertas_motor").insert({
+    id: genId(), tipo, severidade, mensagem, payload
+  });
+}
+
+async function registrarMetrica(sb_: any, dados: any) {
+  const agora = new Date();
+  const data = agora.toISOString().split("T")[0];
+  const hora = agora.getHours();
+  await sb_.from("metricas_motor").upsert({
+    data, hora,
+    total_processadas: dados.processadas || 0,
+    total_sucesso: dados.sucesso || 0,
+    total_falhas: dados.falhas || 0,
+    valor_processado: dados.valorProcessado || 0,
+  }, { onConflict: "data,hora", ignoreDuplicates: false });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD DE SAÚDE DO MOTOR — O monitor do monitor
+// ═══════════════════════════════════════════════════════════════
+
+app.get("/motor/saude", async c => {
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+
+  // Saúde geral da fila
+  const { data: saude } = await sb_.from("saude_motor").select("*").single();
+
+  // Alertas ativos
+  const { data: alertas } = await sb_
+    .from("alertas_motor")
+    .select("*")
+    .eq("resolvido", false)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  // Métricas das últimas 24h
+  const ontemStr = new Date(Date.now() - 24*3600*1000).toISOString().split("T")[0];
+  const { data: metricas } = await sb_
+    .from("metricas_motor")
+    .select("*")
+    .gte("data", ontemStr)
+    .order("data")
+    .order("hora");
+
+  // Cache hit rate
+  const { data: cacheStats } = await sb_
+    .from("cache_perfil_risco")
+    .select("aluna_id, nivel, expires_at");
+
+  const cacheAtivo = (cacheStats || []).filter(
+    (c: any) => new Date(c.expires_at) > new Date()
+  ).length;
+
+  // Detecta problemas automaticamente
+  const problemas = [];
+  if (saude) {
+    if ((saude.taxa_sucesso_pct || 0) < 80) {
+      problemas.push({ tipo: "TAXA_SUCESSO_BAIXA", severidade: "critical", valor: saude.taxa_sucesso_pct });
+      await registrarAlerta(sb_, "TAXA_SUCESSO_BAIXA", "critical",
+        `Taxa de sucesso abaixo de 80%: ${saude.taxa_sucesso_pct}%`, saude);
+    }
+    if ((saude.falhas_ultima_hora || 0) > 10) {
+      problemas.push({ tipo: "MUITAS_FALHAS_HORA", severidade: "warning", valor: saude.falhas_ultima_hora });
+      await registrarAlerta(sb_, "MUITAS_FALHAS_HORA", "warning",
+        `${saude.falhas_ultima_hora} falhas na última hora`, saude);
+    }
+    if ((saude.fila_processando || 0) > 100) {
+      problemas.push({ tipo: "FILA_TRAVADA", severidade: "warning", valor: saude.fila_processando });
+    }
+  }
+
+  const statusGeral = problemas.some(p => p.severidade === "critical") ? "critical"
+    : problemas.some(p => p.severidade === "warning") ? "warning" : "healthy";
+
+  return c.json({
+    status: statusGeral,
+    timestamp: new Date().toISOString(),
+    motor: saude || {},
+    alertas_ativos: alertas || [],
+    problemas_detectados: problemas,
+    cache: { perfis_ativos: cacheAtivo, total_registros: cacheStats?.length || 0 },
+    metricas_24h: metricas || []
+  });
+});
+
+// Análise de risco COM cache — não re-analisa desnecessariamente
+app.get("/motor/risco/:alunaId", async c => {
+  const alunaId = c.req.param("alunaId");
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+  const forceRefresh = c.req.query("refresh") === "true";
+
+  // Tenta cache primeiro
+  if (!forceRefresh) {
+    const cache = await getPerfilRiscoCache(sb_, alunaId);
+    if (cache) {
+      return c.json({ ...cache, fonte: "cache", economia: "Claude não consultado" });
+    }
+  }
+
+  // Cache miss — calcula perfil
+  const { data: aluna } = await sb_.from("alunas").select("*").eq("id", alunaId).single();
+  if (!aluna) return c.json({ error: "Aluna não encontrada" }, 404);
+
+  const { data: pagamentos } = await sb_
+    .from("pagamentos").select("mes,valor,data").eq("aluna_id", alunaId);
+
+  const hoje = new Date();
+  let score = 0;
+  const motivos: string[] = [];
+
+  // Meses sem pagar
+  let mesesSemPagar = 0;
+  for (let i = 0; i < 3; i++) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    const mes = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+    if (!(pagamentos||[]).find((p:any) => p.mes === mes && p.data)) mesesSemPagar++;
+  }
+  if (mesesSemPagar >= 3) { score += 40; motivos.push("3+ meses sem pagar"); }
+  else if (mesesSemPagar >= 2) { score += 25; motivos.push("2 meses sem pagar"); }
+  else if (mesesSemPagar >= 1) { score += 10; motivos.push("1 mês sem pagar"); }
+  if (aluna.suspenso) { score += 30; motivos.push("Conta suspensa"); }
+  if (aluna.bolsista) { score += 5; motivos.push("Bolsista"); }
+
+  // LTV
+  const pags = pagamentos || [];
+  const ticketMedio = pags.length > 0 ? pags.reduce((s:number,p:any) => s+(p.valor||0),0)/pags.length : aluna.valor||160;
+  const taxaRetencao = Math.max(0.5, 1 - (score/100));
+  const ltv12meses = ticketMedio * taxaRetencao * 12;
+
+  const nivel = score >= 40 ? "alto" : score >= 20 ? "medio" : "baixo";
+  const perfil = { aluna_id: alunaId, score: Math.min(100, score), nivel, motivos, ltv12meses, taxaRetencao };
+
+  // Salva no cache por 24h
+  await salvarPerfilRiscoCache(sb_, alunaId, perfil);
+
+  return c.json({ ...perfil, fonte: "calculado", expires_em: "24h" });
+});
+
+// Resolve alerta manualmente
+app.put("/motor/alertas/:id/resolver", async c => {
+  const id = c.req.param("id");
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+  await sb_.from("alertas_motor").update({
+    resolvido: true,
+    resolvido_em: new Date().toISOString()
+  }).eq("id", id);
+  return c.json({ ok: true });
+});
+
+// Limpa cache expirado
+app.delete("/motor/cache/limpar", async c => {
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+  const { data, error } = await sb_
+    .from("cache_perfil_risco")
+    .delete()
+    .lt("expires_at", new Date().toISOString());
+  return c.json({ ok: true, removidos: data?.length || 0 });
+});
+
 export default app;
