@@ -16,6 +16,7 @@ import { AdminPage } from "./pages/AdminPage";
 import { IAPage } from "./pages/IAPage";
 import { SemRematriculaPage } from "./pages/SemRematriculaPage";
 import { CobrancasEfiPage } from "./pages/CobrancasEfiPage";
+import { SaudeMotorPage } from "./pages/SaudeMotorPage";
 import { CobrancasWhatsAppPage } from "./pages/CobrancasWhatsAppPage";
 import { BoletosInternosPage } from "./pages/BoletosInternosPage";
 import { MensalidadesPage } from "./pages/MensalidadesPage";
@@ -185,6 +186,7 @@ function Sistema() {
           {page === "turmas" && <TurmasPage turmas={turmas} alunas={alunas} onRefresh={refresh} onToast={showToast} />}
           {page === "presenca" && <PresencaPage turmas={turmas} alunas={alunas} onToast={showToast} />}
           {page === "arquivo_morto" && <ArquivoMortoPage config={config} onRefresh={refresh} onToast={showToast} />}
+          {page === "saude_motor" && <SaudeMotorPage onToast={showToast} />}
           {page === "telegram" && <TelegramPage config={config} onToast={showToast} onConfigChange={setConfig} />}
           {page === "cameras" && <CamerasPage onToast={showToast} />}
           {page === "financeiro" && <FinanceiroPage onToast={showToast} />}
