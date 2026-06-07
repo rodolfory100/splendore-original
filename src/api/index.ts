@@ -652,13 +652,15 @@ app.post("/fila/processar", async c => {
   const resultados = { processadas: 0, sucesso: 0, falhas: 0, puladas: 0 };
 
   // Busca cobranças pendentes prontas para processar
-  const { data: pendentes } = await sb_
+  const { data: pendentes, error: errPendentes } = await sb_
     .from("fila_cobrancas")
     .select("*, alunas(nome, whatsapp, cpf_responsavel)")
     .in("status", ["pendente", "falhou"])
     .lt("tentativas", 3)
     .order("created_at")
     .limit(50);
+
+  if (errPendentes) return c.json({ error: errPendentes.message }, 500);
 
   if (!pendentes?.length) {
     return c.json({ ok: true, mensagem: "Fila vazia", ...resultados });
