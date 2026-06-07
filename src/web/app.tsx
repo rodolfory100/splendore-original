@@ -1,5 +1,6 @@
 import { Route, Switch } from "wouter";
 import { useState, useEffect, useCallback } from "react";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Provider } from "./components/provider";
 import { Sidebar } from "./components/Sidebar";
 import { ToastContainer, useToast } from "./components/Toast";
@@ -199,14 +200,16 @@ function Sistema() {
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 function App() {
   return (
-    <Provider>
-      <Switch>
-        <Route path="/portal" component={PortalPage} />
-        <Route path="/professor" component={ProfessorPage} />
-        <Route path="/contratos/assinar/:token" component={AssinarContratoPage} />
-        <Route path="/" component={Sistema} />
-      </Switch>
-    </Provider>
+    <ErrorBoundary>
+      <Provider>
+        <Switch>
+          <Route path="/portal" component={PortalPage} />
+          <Route path="/professor" component={ProfessorPage} />
+          <Route path="/contratos/assinar/:token" component={AssinarContratoPage} />
+          <Route path="/" component={Sistema} />
+        </Switch>
+      </Provider>
+    </ErrorBoundary>
   );
 }
 
