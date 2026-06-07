@@ -656,7 +656,6 @@ app.post("/fila/processar", async c => {
     .from("fila_cobrancas")
     .select("*, alunas(nome, whatsapp, cpf_responsavel)")
     .in("status", ["pendente", "falhou"])
-    .lte("proximo_retry", agora)
     .lt("tentativas", 3)
     .order("created_at")
     .limit(50);
