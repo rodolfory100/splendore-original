@@ -255,9 +255,27 @@ app.put("/parcelas/:id/pagar", async c => {
 app.get("/mensalidades/:alunaId", async c => {
   const alunaId = c.req.param("alunaId");
   const ano = c.req.query("ano") || new Date().getFullYear().toString();
-  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").eq("aluna_id", alunaId).like("mes", `${ano}-%`).order("mes");
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").eq("aluna_id", alunaId).like("mes", ano + "-%").order("mes");
   if (error) return c.json({ error: error.message }, 500);
-  return c.json({ mensalidades: data || [] });
+  const meses = ["01","02","03","04","05","06","07","08","09","10","11","12"];
+  const pagSet = new Map((data||[]).map((p:any) => [p.mes, p]));
+  const mensalidades = meses.map(m => {
+    const mes = ano + "-" + m;
+    const pag = pagSet.get(mes);
+    return {
+      mes,
+      ano: parseInt(ano),
+      mesNum: parseInt(m),
+      pago: !!pag?.data,
+      valor: pag?.valor || 0,
+      data: pag?.data || null,
+      forma: pag?.forma || null,
+      observacao: pag?.observacao || null,
+      pagamentoId: pag?.id || null,
+      status: pag?.data ? "pago" : "pendente",
+    };
+  });
+  return c.json({ mensalidades });
 });
 
 app.post("/mensalidades", async c => {
