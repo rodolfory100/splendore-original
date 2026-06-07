@@ -432,4 +432,20 @@ Quando sugerir mensagens de cobrança, faça de forma simpática e profissional.
   return c.json({ resposta: data.content[0].text });
 });
 
+
+app.post("/mensalidades/gerar", async c => {
+  const { alunaId, ano } = await c.req.json();
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const { data: aluna } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("id", alunaId).single();
+  if (!aluna) return c.json({ error: "Aluna não encontrada" }, 404);
+  const meses = Array.from({length: 12}, (_, i) => `${ano}-${String(i+1).padStart(2,"0")}`);
+  const { data: existentes } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("mes").eq("aluna_id", alunaId);
+  const existSet = new Set((existentes || []).map((p: any) => p.mes));
+  const novos = meses.filter(m => !existSet.has(m)).map(m => ({ id: genId(), aluna_id: alunaId, mes: m, data: null, valor: aluna.valor || 160, forma: null, observacao: "Gerado automaticamente", parcela_id: null }));
+  if (novos.length === 0) return c.json({ ok: true, gerados: 0 });
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert(novos);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true, gerados: novos.length });
+});
+
 export default app;
