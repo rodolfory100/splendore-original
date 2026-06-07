@@ -654,7 +654,7 @@ app.post("/fila/processar", async c => {
   // Busca cobranças pendentes prontas para processar
   const { data: pendentes, error: errPendentes } = await sb_
     .from("fila_cobrancas")
-    .select("*, alunas(nome, whatsapp, cpf_responsavel)")
+    .select("*")
     .in("status", ["pendente", "falhou"])
     .lt("tentativas", 3)
     .order("created_at")
