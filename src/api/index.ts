@@ -520,8 +520,9 @@ app.get("/financeiro/dre", async c => {
 app.get("/financeiro/fluxo", async c => {
   const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").not("data","is",null).order("data", { ascending: false }).limit(50);
   const { data: desps } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").select("*").order("data", { ascending: false }).limit(50);
-  const entradas = (pags||[]).map((p:any) => ({ ...p, tipo: "entrada", descricao: "Mensalidade" }));
-  const saidas = (desps||[]).map((d:any) => ({ ...d, tipo: "saida" }));
+  const hoje = new Date().toISOString().split("T")[0];
+  const entradas = (pags||[]).map((p:any) => ({ ...p, tipo: "entrada", descricao: p.observacao || "Mensalidade", data: p.data || hoje }));
+  const saidas = (desps||[]).map((d:any) => ({ ...d, tipo: "saida", data: d.data || hoje }));
   const fluxo = [...entradas, ...saidas].sort((a,b) => (b.data||"").localeCompare(a.data||""));
   return c.json(fluxo.slice(0, 100));
 });
