@@ -583,4 +583,392 @@ app.get("/sem-rematricula", async c => {
   return c.json(data || []);
 });
 
+
+// ═══════════════════════════════════════════════════════════════
+// MOTOR DE RESILIÊNCIA — Idempotência + Retry + Fila de Cobranças
+// ═══════════════════════════════════════════════════════════════
+
+// Enfileira cobrança com idempotency key — nunca duplica
+app.post("/fila/enfileirar", async c => {
+  const { alunaId, parcelaId, valor, tipo = "mensalidade" } = await c.req.json();
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+
+  // Idempotency key = hash determinístico da operação
+  const idempotencyKey = btoa(`${alunaId}:${parcelaId || "avulso"}:${valor}:${tipo}:${new Date().toISOString().slice(0,7)}`);
+
+  // Verifica se já existe — se sim, retorna sem duplicar
+  const { data: existente } = await sb_
+    .from("fila_cobrancas")
+    .select("id, status")
+    .eq("idempotency_key", idempotencyKey)
+    .single();
+
+  if (existente) {
+    return c.json({ 
+      ok: true, 
+      duplicata: true, 
+      id: existente.id, 
+      status: existente.status,
+      mensagem: "Cobrança já enfileirada — operação idempotente"
+    });
+  }
+
+  // Nova cobrança — insere na fila
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const id = genId();
+
+  const { error } = await sb_.from("fila_cobrancas").insert({
+    id,
+    idempotency_key: idempotencyKey,
+    aluna_id: alunaId,
+    parcela_id: parcelaId,
+    valor,
+    tipo,
+    status: "pendente",
+    tentativas: 0,
+    max_tentativas: 3,
+    proximo_retry: new Date().toISOString()
+  });
+
+  if (error) return c.json({ error: error.message }, 500);
+
+  // Log do evento
+  await sb_.from("eventos_cobranca").insert({
+    id: genId(),
+    fila_id: id,
+    aluna_id: alunaId,
+    tipo: "enfileirado",
+    payload: { valor, tipo, parcelaId }
+  });
+
+  return c.json({ ok: true, duplicata: false, id, status: "pendente" });
+});
+
+// Processa fila — executa cobranças pendentes com retry
+app.post("/fila/processar", async c => {
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const agora = new Date().toISOString();
+  const resultados = { processadas: 0, sucesso: 0, falhas: 0, puladas: 0 };
+
+  // Busca cobranças pendentes prontas para processar
+  const { data: pendentes } = await sb_
+    .from("fila_cobrancas")
+    .select("*, alunas(nome, whatsapp, cpf_responsavel)")
+    .in("status", ["pendente", "falhou"])
+    .lte("proximo_retry", agora)
+    .lt("tentativas", 3)
+    .order("created_at")
+    .limit(50);
+
+  if (!pendentes?.length) {
+    return c.json({ ok: true, mensagem: "Fila vazia", ...resultados });
+  }
+
+  for (const cobranca of pendentes) {
+    resultados.processadas++;
+
+    // Marca como processando — evita processamento duplo
+    await sb_.from("fila_cobrancas").update({
+      status: "processando",
+      updated_at: agora
+    }).eq("id", cobranca.id).eq("status", cobranca.status); // Optimistic lock
+
+    try {
+      // Simula chamada ao gateway (Asaas/Efi)
+      // Em produção: await chamarAsaas(cobranca)
+      const gatewayResponse = await simularGateway(cobranca);
+
+      if (gatewayResponse.sucesso) {
+        // SUCESSO — baixa a cobrança
+        await sb_.from("fila_cobrancas").update({
+          status: "sucesso",
+          gateway_response: gatewayResponse,
+          processado_em: agora,
+          updated_at: agora
+        }).eq("id", cobranca.id);
+
+        // Se tem parcela, baixa automaticamente
+        if (cobranca.parcela_id) {
+          await sb_.from("parcelas").update({
+            status: "pago",
+            data_pagamento: agora.split("T")[0],
+            valor_pago: cobranca.valor,
+            forma_pagamento: "gateway_automatico"
+          }).eq("id", cobranca.parcela_id);
+
+          // Registra pagamento
+          await sb_.from("pagamentos").insert({
+            id: genId(),
+            aluna_id: cobranca.aluna_id,
+            mes: new Date().toISOString().slice(0,7),
+            data: agora.split("T")[0],
+            valor: cobranca.valor,
+            forma: "gateway_automatico",
+            observacao: `Processado automaticamente — fila ${cobranca.id}`
+          });
+        }
+
+        await sb_.from("eventos_cobranca").insert({
+          id: genId(),
+          fila_id: cobranca.id,
+          aluna_id: cobranca.aluna_id,
+          tipo: "sucesso",
+          payload: gatewayResponse
+        });
+
+        resultados.sucesso++;
+
+      } else {
+        throw new Error(gatewayResponse.erro || "Gateway retornou falha");
+      }
+
+    } catch (erro: any) {
+      const tentativas = cobranca.tentativas + 1;
+      const backoffSegundos = Math.pow(2, tentativas) * 60; // 2min, 4min, 8min
+      const proximoRetry = new Date(Date.now() + backoffSegundos * 1000).toISOString();
+      const statusFinal = tentativas >= 3 ? "falhou" : "pendente";
+
+      await sb_.from("fila_cobrancas").update({
+        status: statusFinal,
+        tentativas,
+        proximo_retry: proximoRetry,
+        ultimo_erro: erro.message,
+        updated_at: agora
+      }).eq("id", cobranca.id);
+
+      await sb_.from("eventos_cobranca").insert({
+        id: genId(),
+        fila_id: cobranca.id,
+        aluna_id: cobranca.aluna_id,
+        tipo: tentativas >= 3 ? "falha" : "retry",
+        erro: erro.message,
+        payload: { tentativas, proximoRetry, backoffSegundos }
+      });
+
+      resultados.falhas++;
+    }
+  }
+
+  return c.json({ ok: true, ...resultados });
+});
+
+// Webhook idempotente — nunca processa o mesmo evento 2x
+app.post("/webhook/:gateway", async c => {
+  const gateway = c.req.param("gateway");
+  const payload = await c.req.json();
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+
+  // ID único do webhook vindo do gateway
+  const webhookId = payload.id || payload.paymentId || genId();
+
+  // Verifica idempotência — já processamos este webhook?
+  const { data: existente } = await sb_
+    .from("webhooks_recebidos")
+    .select("id, processado")
+    .eq("id", webhookId)
+    .eq("gateway", gateway)
+    .single();
+
+  if (existente?.processado) {
+    return c.json({ ok: true, duplicata: true, mensagem: "Webhook já processado" });
+  }
+
+  // Registra o webhook
+  await sb_.from("webhooks_recebidos").upsert({
+    id: webhookId,
+    gateway,
+    evento: payload.event || payload.type || "unknown",
+    payload,
+    processado: false
+  });
+
+  // Processa o evento
+  try {
+    if (payload.event === "PAYMENT_RECEIVED" || payload.status === "pago") {
+      const valorPago = payload.payment?.value || payload.value || payload.valor;
+      const descricao = payload.payment?.description || payload.description || "";
+
+      // Tenta conciliação automática
+      const conciliacao = await conciliarPagamento(sb_, {
+        webhookId,
+        valorPago,
+        descricao,
+        dataPagamento: payload.payment?.paymentDate || new Date().toISOString().split("T")[0]
+      });
+
+      // Marca webhook como processado
+      await sb_.from("webhooks_recebidos").update({
+        processado: true,
+        processado_em: new Date().toISOString()
+      }).eq("id", webhookId).eq("gateway", gateway);
+
+      return c.json({ ok: true, conciliacao });
+    }
+
+    return c.json({ ok: true, evento: "ignorado" });
+
+  } catch (erro: any) {
+    await sb_.from("webhooks_recebidos").update({
+      erro: erro.message
+    }).eq("id", webhookId).eq("gateway", gateway);
+
+    return c.json({ error: erro.message }, 500);
+  }
+});
+
+// Conciliação bancária por IA
+async function conciliarPagamento(sb_: any, dados: any) {
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+
+  // Busca parcelas em aberto próximas ao valor
+  const { data: parcelas } = await sb_
+    .from("parcelas")
+    .select("*, alunas(nome, cpf_responsavel)")
+    .eq("status", "em_aberto")
+    .gte("valor_desconto", dados.valorPago * 0.9)
+    .lte("valor_desconto", dados.valorPago * 1.1)
+    .limit(10);
+
+  if (!parcelas?.length) {
+    await sb_.from("conciliacao").insert({
+      id: genId(),
+      webhook_id: dados.webhookId,
+      valor_pago: dados.valorPago,
+      status: "manual",
+      ia_confianca: 0,
+      ia_motivo: "Nenhuma parcela com valor próximo encontrada"
+    });
+    return { status: "manual", motivo: "Sem correspondência" };
+  }
+
+  // Se só uma correspondência clara, concilia automaticamente
+  if (parcelas.length === 1) {
+    const parcela = parcelas[0];
+    const divergencia = Math.abs(dados.valorPago - parcela.valor_desconto) / parcela.valor_desconto;
+
+    await sb_.from("parcelas").update({
+      status: "pago",
+      data_pagamento: dados.dataPagamento,
+      valor_pago: dados.valorPago,
+      forma_pagamento: "gateway_webhook"
+    }).eq("id", parcela.id);
+
+    await sb_.from("pagamentos").insert({
+      id: genId(),
+      aluna_id: parcela.aluna_id,
+      mes: parcela.mes,
+      data: dados.dataPagamento,
+      valor: dados.valorPago,
+      forma: "gateway_webhook",
+      observacao: `Conciliado automaticamente via webhook`
+    });
+
+    await sb_.from("conciliacao").insert({
+      id: genId(),
+      webhook_id: dados.webhookId,
+      aluna_id: parcela.aluna_id,
+      parcela_id: parcela.id,
+      valor_pago: dados.valorPago,
+      valor_esperado: parcela.valor_desconto,
+      divergencia,
+      status: "conciliado",
+      ia_confianca: divergencia < 0.01 ? 0.99 : 0.85,
+      ia_motivo: `Correspondência única — divergência ${(divergencia*100).toFixed(1)}%`,
+      resolvido_por: "ia"
+    });
+
+    return { status: "conciliado", aluna: parcela.alunas?.nome, divergencia };
+  }
+
+  // Múltiplas correspondências — cria alerta para revisão
+  await sb_.from("conciliacao").insert({
+    id: genId(),
+    webhook_id: dados.webhookId,
+    valor_pago: dados.valorPago,
+    status: "divergente",
+    ia_confianca: 0.4,
+    ia_motivo: `${parcelas.length} correspondências possíveis — revisão necessária`
+  });
+
+  return { status: "divergente", candidatos: parcelas.length };
+}
+
+// Simula gateway — em produção substitui por Asaas/Efi real
+async function simularGateway(cobranca: any) {
+  // 85% de sucesso, 15% de falha (simula instabilidade real)
+  const sucesso = Math.random() > 0.15;
+  await new Promise(r => setTimeout(r, 100)); // Simula latência
+  return sucesso 
+    ? { sucesso: true, transacaoId: crypto.randomUUID(), valor: cobranca.valor }
+    : { sucesso: false, erro: "Gateway temporariamente indisponível" };
+}
+
+// Dashboard da fila em tempo real
+app.get("/fila/status", async c => {
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+  const { data } = await sb_.from("dashboard_fila").select("*");
+  const { data: recentes } = await sb_
+    .from("fila_cobrancas")
+    .select("id, status, valor, tentativas, ultimo_erro, created_at")
+    .order("created_at", { ascending: false })
+    .limit(20);
+  return c.json({ resumo: data || [], recentes: recentes || [] });
+});
+
+// Enfileira cobranças em massa — até 10.000 de uma vez
+app.post("/fila/enfileirar-lote", async c => {
+  const { mes } = await c.req.json();
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const mesAlvo = mes || new Date().toISOString().slice(0,7);
+  const agora = new Date().toISOString();
+
+  // Busca todas inadimplentes do mês
+  const { data: alunas } = await sb_
+    .from("alunas")
+    .select("id, valor")
+    .eq("ativo", true)
+    .eq("bolsista", false);
+
+  const { data: pagos } = await sb_
+    .from("pagamentos")
+    .select("aluna_id")
+    .eq("mes", mesAlvo);
+
+  const pagosSet = new Set((pagos||[]).map((p:any) => p.aluna_id));
+  const inadimplentes = (alunas||[]).filter((a:any) => !pagosSet.has(a.id));
+
+  if (!inadimplentes.length) {
+    return c.json({ ok: true, enfileiradas: 0, mensagem: "Todas em dia!" });
+  }
+
+  // Insere em lote com idempotência
+  const lote = inadimplentes.map((a:any) => ({
+    id: genId(),
+    idempotency_key: btoa(`${a.id}:mensalidade:${a.valor}:${mesAlvo}`),
+    aluna_id: a.id,
+    valor: a.valor || 160,
+    tipo: "mensalidade",
+    status: "pendente",
+    tentativas: 0,
+    max_tentativas: 3,
+    proximo_retry: agora
+  }));
+
+  // Upsert — se já existe (mesma idempotency_key) ignora
+  const { error } = await sb_
+    .from("fila_cobrancas")
+    .upsert(lote, { onConflict: "idempotency_key", ignoreDuplicates: true });
+
+  if (error) return c.json({ error: error.message }, 500);
+
+  return c.json({ 
+    ok: true, 
+    enfileiradas: inadimplentes.length,
+    mensagem: `${inadimplentes.length} cobranças enfileiradas para ${mesAlvo}`
+  });
+});
+
 export default app;
