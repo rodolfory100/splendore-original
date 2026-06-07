@@ -24,12 +24,32 @@ app.onError((err, c) => c.json({ error: err.message, id: crypto.randomUUID() }, 
 app.notFound(c => c.json({ error: "Not found" }, 404));
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
+const JWT_SECRET = "splendore_jwt_2026_ballet";
+
+async function signToken(payload: any): Promise<string> {
+  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const body = btoa(JSON.stringify({ ...payload, iat: Date.now(), exp: Date.now() + 86400000 }));
+  const sig = btoa(`${header}.${body}.${JWT_SECRET}`).replace(/=/g,"");
+  return `${header}.${body}.${sig}`;
+}
+
+function verifyToken(token: string): boolean {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return false;
+    const payload = JSON.parse(atob(parts[1]));
+    if (payload.exp < Date.now()) return false;
+    const expectedSig = btoa(`${parts[0]}.${parts[1]}.${JWT_SECRET}`).replace(/=/g,"");
+    return parts[2] === expectedSig;
+  } catch { return false; }
+}
+
 app.post("/login", async c => {
   const { senha } = await c.req.json();
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("id","main").single();
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin").eq("id","main").single();
   if (!data || data.senha !== senha) return c.json({ error: "Senha incorreta" }, 401);
-  const token = btoa(`splendore:${Date.now()}:${Math.random()}`);
-  return c.json({ token });
+  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin" });
+  return c.json({ token, escola: data.escola, admin: data.nome_admin });
 });
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
@@ -203,10 +223,10 @@ app.get("/cobrancas", async c => {
 
 app.post("/auth/login", async c => {
   const { senha } = await c.req.json();
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("id","main").single();
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin").eq("id","main").single();
   if (!data || data.senha !== senha) return c.json({ error: "Senha incorreta" }, 401);
-  const token = btoa("splendore:" + Date.now());
-  return c.json({ token });
+  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin" });
+  return c.json({ ok: true, token, escola: data.escola, admin: data.nome_admin });
 });
 
 
