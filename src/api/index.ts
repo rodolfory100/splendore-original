@@ -468,4 +468,35 @@ app.post("/mensalidades/gerar/:alunaId", async c => {
   return c.json({ ok: true, gerados: novos.length });
 });
 
+
+app.get("/despesas", async c => {
+  const mes = c.req.query("mes") || "";
+  let q = sb(c.env.SUPABASE_SECRET_KEY).from("despesas").select("*").order("data", { ascending: false });
+  if (mes) q = q.eq("mes", mes);
+  const { data, error } = await q;
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(data || []);
+});
+
+app.post("/despesas", async c => {
+  const body = await c.req.json();
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").insert({ id: genId(), ...body });
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+
+app.put("/despesas/:id", async c => {
+  const id = c.req.param("id");
+  const body = await c.req.json();
+  await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").update(body).eq("id", id);
+  return c.json({ ok: true });
+});
+
+app.delete("/despesas/:id", async c => {
+  const id = c.req.param("id");
+  await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").delete().eq("id", id);
+  return c.json({ ok: true });
+});
+
 export default app;
