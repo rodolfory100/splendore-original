@@ -16,6 +16,7 @@ import { AdminPage } from "./pages/AdminPage";
 import { IAPage } from "./pages/IAPage";
 import { SemRematriculaPage } from "./pages/SemRematriculaPage";
 import { CobrancasEfiPage } from "./pages/CobrancasEfiPage";
+import { CobrancasWhatsAppPage } from "./pages/CobrancasWhatsAppPage";
 import { BoletosInternosPage } from "./pages/BoletosInternosPage";
 import { MensalidadesPage } from "./pages/MensalidadesPage";
 import { PortalPage } from "./pages/PortalPage";
@@ -169,7 +170,7 @@ function Sistema() {
         <div style={{ padding: "28px 32px" }}>
           {page === "dashboard" && <Dashboard alunas={alunas} pagamentos={pagamentos} inadimplentes={inadimplentes} onNavigate={navigate} />}
           {page === "alunos" && <AlunosPage alunas={alunas} pagamentos={pagamentos} turmas={turmas} onRefresh={refresh} onToast={showToast} onNavigate={navigate} />}
-          {page === "cobrancas" && <CobrancasPage inadimplentes={inadimplentes} config={config} onRefresh={refresh} onToast={showToast} />}
+          {page === "cobrancas" && <CobrancasWhatsAppPage alunas={alunas} pagamentos={pagamentos} inadimplentes={inadimplentes} config={config} onToast={showToast} />}
           {page === "pagamentos" && <PagamentosPage pagamentos={pagamentos} alunas={alunas} config={config} onRefresh={refresh} onToast={showToast} onOpenPagamento={() => setPagModalOpen(true)} />}
           {page === "relatorios" && <RelatoriosPage alunas={alunas} pagamentos={pagamentos} inadimplentes={inadimplentes} config={config} />}
           {page === "renovacoes" && <RenovacoesPage renovacoes={renovacoes} config={config} onRefresh={refresh} onToast={showToast} />}
