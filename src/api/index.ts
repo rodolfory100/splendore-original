@@ -1162,4 +1162,113 @@ app.delete("/motor/cache/limpar", async c => {
   return c.json({ ok: true, removidos: data?.length || 0 });
 });
 
+
+// ═══════════════════════════════════════════════════════════════
+
+// CAMADA DE OBSERVABILIDADE
+const LogService = {
+  async logIA(sb_: any, dados: any): Promise<void> {
+    const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+    const custo = ((dados.tokens_input || 0) * 0.000003) + ((dados.tokens_output || 0) * 0.000015);
+    sb_.from("logs_ia_agente").insert({ id: genId(), tenant_id: "ballet-splendore", ...dados, custo_estimado: custo }).then(() => {}).catch((e: any) => console.error("[LogIA]", e.message));
+  },
+  async logPerformance(sb_: any, dados: any): Promise<void> {
+    const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+    if (dados.tempo_ms < 500 && !dados.erro) return;
+    sb_.from("logs_performance").insert({ id: genId(), tenant_id: "ballet-splendore", ...dados }).then(() => {}).catch((e: any) => console.error("[LogPerf]", e.message));
+  },
+  async logSeguranca(sb_: any, tipo: string, recurso: string, payload: any): Promise<void> {
+    const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+    console.error("[SECURITY] " + tipo + " | " + recurso);
+    sb_.from("logs_seguranca").insert({ id: genId(), tipo, severidade: "critical", recurso_acessado: recurso, payload, bloqueado: true }).then(() => {}).catch((e: any) => console.error("[LogSec]", e.message));
+  }
+};
+
+app.use("*", async (c, next) => {
+  const inicio = Date.now();
+  const endpoint = new URL(c.req.url).pathname;
+  const metodo = c.req.method;
+  const ip = c.req.header("cf-connecting-ip") || "unknown";
+  try {
+    await next();
+    const tempo_ms = Date.now() - inicio;
+    LogService.logPerformance(sb(c.env.SUPABASE_SECRET_KEY), { endpoint, metodo, tempo_ms, status_code: c.res.status, ip });
+  } catch (erro: any) {
+    const tempo_ms = Date.now() - inicio;
+    LogService.logPerformance(sb(c.env.SUPABASE_SECRET_KEY), { endpoint, metodo, tempo_ms, status_code: 500, erro: erro.message, stack_trace: (erro.stack || "").slice(0, 500), ip });
+    return c.json({ error: "Erro interno" }, 500);
+  }
+});
+
+async function analisarSentimento(sb_: any, alunaId: string): Promise<any> {
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const { data: cache } = await sb_.from("sentimento_alunas").select("*").eq("aluna_id", alunaId).gt("expires_at", new Date().toISOString()).single();
+  if (cache) return { ...cache, fonte: "cache" };
+  const { data: aluna } = await sb_.from("alunas").select("*").eq("id", alunaId).single();
+  const { data: pagamentos } = await sb_.from("pagamentos").select("mes,valor,data").eq("aluna_id", alunaId).limit(6);
+  const mesesSemPagar = (pagamentos || []).filter((p: any) => !p.data).length;
+  let score = 0.5; let motivo = "Historico neutro";
+  if (aluna?.suspenso) { score = -0.7; motivo = "Conta suspensa"; }
+  else if (mesesSemPagar >= 3) { score = -0.6; motivo = "3+ meses sem pagar"; }
+  else if (mesesSemPagar >= 2) { score = -0.3; motivo = "2 meses sem pagar"; }
+  else if (mesesSemPagar === 0) { score = 0.8; motivo = "Pagamentos em dia"; }
+  const classificacao = score >= 0.5 ? "satisfeita" : score >= 0 ? "neutra" : score >= -0.5 ? "insatisfeita" : "muito_insatisfeita";
+  const resultado = { aluna_id: alunaId, score, classificacao, bloquear_cobranca: score < -0.5, alerta_humano: score < -0.5, motivo, mensagens_analisadas: (pagamentos || []).length, expires_at: new Date(Date.now() + 7*24*3600*1000).toISOString() };
+  await sb_.from("sentimento_alunas").upsert({ id: genId(), ...resultado }, { onConflict: "aluna_id" });
+  return { ...resultado, fonte: "calculado" };
+}
+
+async function verificarSaudeMotor(sb_: any): Promise<any> {
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const { data: saude } = await sb_.from("saude_motor").select("*").single();
+  if (!saude) return null;
+  const taxa = saude.taxa_sucesso_pct || 100;
+  const falhasConsec = saude.total_falhou || 0;
+  if (taxa >= 95 && falhasConsec < 5) return null;
+  const severidade = taxa < 80 || falhasConsec >= 5 ? "critical" : "warning";
+  const alerta = { tipo: taxa < 95 ? "TAXA_SUCESSO_BAIXA" : "FALHAS_CONSECUTIVAS", severidade, taxa_sucesso: taxa, falhas_consecutivas: falhasConsec, payload: { timestamp: new Date().toISOString(), sistema: "Ballet Splendore", acao: severidade === "critical" ? "Verificar gateway imediatamente" : "Monitorar" } };
+  await sb_.from("alertas_saude").insert({ id: genId(), ...alerta, webhook_enviado: false });
+  return alerta;
+}
+
+app.get("/observabilidade/sentimento/:alunaId", async c => {
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+  if (c.req.query("refresh") === "true") await sb_.from("sentimento_alunas").delete().eq("aluna_id", c.req.param("alunaId"));
+  return c.json(await analisarSentimento(sb_, c.req.param("alunaId")));
+});
+
+app.get("/observabilidade/logs-ia", async c => {
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("logs_ia_agente").select("id,ferramenta_escolhida,status_final,tempo_resposta_ms,custo_estimado,created_at").order("created_at", { ascending: false }).limit(20);
+  return c.json(data || []);
+});
+
+app.get("/observabilidade/logs-performance", async c => {
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("logs_performance").select("endpoint,metodo,tempo_ms,status_code,erro,created_at").order("created_at", { ascending: false }).limit(50);
+  return c.json(data || []);
+});
+
+app.post("/observabilidade/verificar-saude", async c => {
+  const alerta = await verificarSaudeMotor(sb(c.env.SUPABASE_SECRET_KEY));
+  return c.json({ ok: true, alerta_gerado: !!alerta, alerta: alerta || null, mensagem: alerta ? "Alerta " + (alerta.severidade) + " gerado" : "Sistema saudavel" });
+});
+
+app.get("/observabilidade/cobrancas-bloqueadas", async c => {
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("sentimento_alunas").select("*").eq("bloquear_cobranca", true).gt("expires_at", new Date().toISOString()).order("score");
+  return c.json(data || []);
+});
+
+app.get("/observabilidade/dashboard", async c => {
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+  const [saude, logsIA, bloqueadas, alertasSaude] = await Promise.all([
+    sb_.from("saude_motor").select("*").single(),
+    sb_.from("logs_ia_agente").select("status_final,tempo_resposta_ms,custo_estimado").order("created_at", { ascending: false }).limit(100),
+    sb_.from("sentimento_alunas").select("aluna_id,score,classificacao,bloquear_cobranca").eq("bloquear_cobranca", true).gt("expires_at", new Date().toISOString()),
+    sb_.from("alertas_saude").select("*").eq("resolvido", false).order("created_at", { ascending: false }).limit(5)
+  ]);
+  const logs = logsIA.data || [];
+  const custoTotal = logs.reduce((s: number, l: any) => s + (l.custo_estimado || 0), 0);
+  const tempoMedio = logs.length > 0 ? logs.reduce((s: number, l: any) => s + (l.tempo_resposta_ms || 0), 0) / logs.length : 0;
+  return c.json({ timestamp: new Date().toISOString(), motor: saude.data || {}, ia: { total_chamadas: logs.length, custo_estimado_usd: custoTotal.toFixed(4), tempo_medio_ms: Math.round(tempoMedio), sucesso: logs.filter((l: any) => l.status_final === "sucesso").length, falhas: logs.filter((l: any) => l.status_final === "falha").length }, protecao_marca: { cobrancas_bloqueadas: bloqueadas.data?.length || 0, alunas_em_risco: bloqueadas.data || [] }, alertas_ativos: alertasSaude.data || [] });
+});
+
 export default app;
