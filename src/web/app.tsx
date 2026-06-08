@@ -169,8 +169,39 @@ function Sistema() {
 
         {/* Content */}
         <div style={{ padding: "28px 32px" }}>
-          {page === "dashboard" && <Dashboard alunas={alunas} pagamentos={pagamentos} inadimplentes={inadimplentes} onNavigate={navigate} />}
-          {page === "alunos" && <AlunosPage alunas={alunas} pagamentos={pagamentos} turmas={turmas} onRefresh={refresh} onToast={showToast} onNavigate={navigate} />}
+          {loadingData && alunas.length === 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Topbar skeleton */}
+              <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+                {[180, 120, 140, 100].map((w, i) => (
+                  <div key={i} className="skeleton" style={{ width: w, height: 36, borderRadius: 10 }} />
+                ))}
+              </div>
+              {/* KPI cards skeleton */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="skeleton" style={{ height: 90, borderRadius: 14 }} />
+                ))}
+              </div>
+              {/* Table skeleton */}
+              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+                <div className="skeleton" style={{ height: 44, borderRadius: 0, marginBottom: 2 }} />
+                {[1,2,3,4,5,6].map(i => (
+                  <div key={i} style={{ display: "flex", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
+                    <div className="skeleton" style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0 }} />
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div className="skeleton" style={{ width: "40%", height: 12 }} />
+                      <div className="skeleton" style={{ width: "25%", height: 10 }} />
+                    </div>
+                    <div className="skeleton" style={{ width: 80, height: 24, borderRadius: 99 }} />
+                    <div className="skeleton" style={{ width: 60, height: 24, borderRadius: 8 }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {(!loadingData || alunas.length > 0) && page === "dashboard" && <Dashboard alunas={alunas} pagamentos={pagamentos} inadimplentes={inadimplentes} onNavigate={navigate} />}
+          {(!loadingData || alunas.length > 0) && page === "alunos" && <AlunosPage alunas={alunas} pagamentos={pagamentos} turmas={turmas} onRefresh={refresh} onToast={showToast} onNavigate={navigate} />}
           {page === "cobrancas" && <CobrancasWhatsAppPage alunas={alunas} pagamentos={pagamentos} inadimplentes={inadimplentes} config={config} onToast={showToast} />}
           {page === "pagamentos" && <PagamentosPage pagamentos={pagamentos} alunas={alunas} config={config} onRefresh={refresh} onToast={showToast} onOpenPagamento={() => setPagModalOpen(true)} />}
           {page === "relatorios" && <RelatoriosPage alunas={alunas} pagamentos={pagamentos} inadimplentes={inadimplentes} config={config} />}
