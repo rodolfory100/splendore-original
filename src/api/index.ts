@@ -158,6 +158,13 @@ app.post("/pagamentos", async c => {
   return c.json({ ok: true });
 });
 
+app.put("/pagamentos/:id/pagar", async c => {
+  const id = c.req.param("id");
+  const { data, valor, forma } = await c.req.json();
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").update({ data, valor, forma }).eq("id", id);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
 app.delete("/pagamentos/:id", async c => {
   const id = c.req.param("id");
   const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").delete().eq("id", id);
