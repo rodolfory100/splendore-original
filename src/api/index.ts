@@ -1301,3 +1301,32 @@ app.get("/observabilidade/dashboard", async c => {
 });
 
 export default app;
+app.post("/recalcular/:alunaId", async c => {
+  const alunaId = c.req.param("alunaId");
+  const { valorTotal, parcelas, planoTipo, anoRef } = await c.req.json();
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const ano = anoRef || new Date().getFullYear();
+  const valorParcela = Math.round((valorTotal / (parcelas || 12)) * 100) / 100;
+
+  // Buscar mensalidades pendentes do ano
+  const { data: mens } = await sb(c.env.SUPABASE_SECRET_KEY)
+    .from("pagamentos").select("id,mes,data").eq("aluna_id", alunaId)
+    .like("mes", ano + "-%").order("mes");
+
+  let atualizados = 0;
+  for (const m of (mens || [])) {
+    if (!m.data) {
+      // Atualizar valor das pendentes
+      await sb(c.env.SUPABASE_SECRET_KEY)
+        .from("pagamentos").update({ valor: valorParcela })
+        .eq("id", m.id);
+      atualizados++;
+    }
+  }
+
+  // Atualizar valor padrão da aluna
+  await sb(c.env.SUPABASE_SECRET_KEY)
+    .from("alunas").update({ valor: valorParcela }).eq("id", alunaId);
+
+  return c.json({ ok: true, atualizados, valorAlvo: valorParcela, mensagem: `✓ ${atualizados} mensalidades recalculadas para R$${valorParcela}` });
+});
