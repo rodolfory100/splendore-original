@@ -31,6 +31,9 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
   const [diagData, setDiagData]       = useState<any>(null);
   const [recalcForm, setRecalcForm]   = useState({ valorTotal:'', parcelas:'12', planoTipo:'mensal' });
   const [modalComprovante, setModalComprovante] = useState<any|null>(null);
+  const [modalAjuste, setModalAjuste] = useState<any|null>(null);
+  const [ajusteForm, setAjusteForm] = useState({ tipo: "desconto_pct", percentual: "0", valorFixo: "0", motivo: "" });
+  const [savingAjuste, setSavingAjuste] = useState(false);
   const [loteForm, setLoteForm]       = useState({ novoValor:'', desconto:'', tipoDesconto: 'valor' as 'valor' | 'percentual', motivo:'' }); // BUG-3
   const [novoVcto, setNovoVcto]       = useState("10");
   const [pagForm, setPagForm]         = useState({ data: new Date().toISOString().split('T')[0], forma:'Pix', valor:'' });
@@ -157,6 +160,26 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
     setFiltro('todos');
     setAlunaSel(a);
     carregarMens(a);
+  };
+
+  const handleAjuste = async () => {
+    if (!modalAjuste) return;
+    setSavingAjuste(true);
+    try {
+      const r = await req<any>(`/pagamentos/${modalAjuste.id}/desconto`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          tipo: ajusteForm.tipo,
+          percentual: parseFloat(ajusteForm.percentual) || 0,
+          valorFixo: parseFloat(ajusteForm.valorFixo) || 0,
+          motivo: ajusteForm.motivo,
+        }),
+      });
+      onToast(`✓ Valor ajustado para R$ ${r.novoValor?.toFixed(2).replace('.', ',')}`, "success");
+      setModalAjuste(null);
+      if (alunaSel) await carregarMens(alunaSel, ano);
+    } catch(e: any) { onToast(e.message, "danger"); }
+    finally { setSavingAjuste(false); }
   };
 
   const handlePagar = async () => {
@@ -594,6 +617,53 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
               )}
               <button onClick={()=>setModalComprovante(null)} className="btn btn-ghost" style={{width:'100%',justifyContent:'center'}}>
                 Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL AJUSTE DE VALOR ── */}
+      {modalAjuste && (
+        <div className="modal-backdrop" onClick={e=>{if(e.target===e.currentTarget)setModalAjuste(null)}}>
+          <div className="modal-box" style={{maxWidth:400}}>
+            <button onClick={()=>setModalAjuste(null)} style={{position:'absolute',top:14,right:14,width:26,height:26,borderRadius:'50%',background:'var(--bg2)',border:'none',cursor:'pointer',fontSize:13}}>✕</button>
+            <div style={{fontWeight:800,fontSize:16,marginBottom:4}}>Ajustar Valor</div>
+            <div style={{fontSize:12,color:'var(--text3)',marginBottom:16}}>{alunaSel?.nome} · {modalAjuste.mes}</div>
+            <div style={{background:'var(--bg)',borderRadius:10,padding:'12px 16px',marginBottom:16}}>
+              <div style={{fontSize:12,color:'var(--text3)'}}>Valor atual</div>
+              <div style={{fontSize:22,fontWeight:800,color:'var(--brand)'}}>R$ {modalAjuste.valor?.toFixed(2).replace('.',',')}</div>
+            </div>
+            <div style={{marginBottom:12}}>
+              <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Tipo de ajuste</label>
+              <select value={ajusteForm.tipo} onChange={e=>setAjusteForm(f=>({...f,tipo:e.target.value}))} style={{width:'100%'}}>
+                <option value="desconto_pct">🏷️ Desconto (%)</option>
+                <option value="desconto_fixo">🏷️ Desconto (R$ fixo)</option>
+                <option value="acrescimo_pct">📈 Acréscimo/Juros (%)</option>
+                <option value="acrescimo_fixo">📈 Acréscimo (R$ fixo)</option>
+                <option value="isencao">⚫ Isenção total (R$ 0)</option>
+              </select>
+            </div>
+            {ajusteForm.tipo.includes('pct') && (
+              <div style={{marginBottom:12}}>
+                <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Percentual (%)</label>
+                <input type="number" value={ajusteForm.percentual} onChange={e=>setAjusteForm(f=>({...f,percentual:e.target.value}))} placeholder="Ex: 10" style={{width:'100%'}} />
+              </div>
+            )}
+            {ajusteForm.tipo.includes('fixo') && (
+              <div style={{marginBottom:12}}>
+                <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Valor (R$)</label>
+                <input type="number" value={ajusteForm.valorFixo} onChange={e=>setAjusteForm(f=>({...f,valorFixo:e.target.value}))} placeholder="Ex: 20" style={{width:'100%'}} />
+              </div>
+            )}
+            <div style={{marginBottom:16}}>
+              <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Motivo (opcional)</label>
+              <input value={ajusteForm.motivo} onChange={e=>setAjusteForm(f=>({...f,motivo:e.target.value}))} placeholder="Ex: Pagamento antecipado, bolsista..." style={{width:'100%'}} />
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-secondary btn-sm" style={{flex:1}} onClick={()=>setModalAjuste(null)}>Cancelar</button>
+              <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={handleAjuste} disabled={savingAjuste}>
+                {savingAjuste ? <><div className="spinner" style={{width:13,height:13}}/> Aplicando...</> : "✓ Aplicar Ajuste"}
               </button>
             </div>
           </div>

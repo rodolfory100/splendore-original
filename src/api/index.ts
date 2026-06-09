@@ -111,21 +111,34 @@ app.post("/alunas", async c => {
   const alunaData = mapAluna(body);
   const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").insert(alunaData);
   if (error) return c.json({ error: error.message }, 500);
-  // Gerar mensalidades automaticamente para o ano atual
-  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
-  const anoAtual = new Date().getFullYear();
-  const mesAtual = new Date().getMonth() + 1;
-  const meses = Array.from({length: 12}, (_,i) => i+1).filter(m => m >= mesAtual);
-  const mensalidades = meses.map(m => ({
-    id: genId(),
-    aluna_id: alunaData.id,
-    mes: `${anoAtual}-${String(m).padStart(2,'0')}`,
-    valor: body.valor || 160,
-    observacao: 'Gerado automaticamente no cadastro'
-  }));
-  if (mensalidades.length > 0) {
-    await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert(mensalidades);
-  }
+  // Gerar plano anual completo — 12 meses com valor e vencimento corretos
+  const genId2 = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const hoje = new Date();
+  const anoAtual2 = hoje.getFullYear();
+  const mesAtual2 = hoje.getMonth() + 1;
+  const diaVcto = parseInt(body.vencimento || "10");
+  const valorMensal = parseFloat(body.valor || "160");
+  // Gerar apenas meses de hoje em diante (não cria meses passados)
+  const mesesFuturos = Array.from({length: 12}, (_,i) => {
+    const m = mesAtual2 + i;
+    const ano = anoAtual2 + Math.floor((m - 1) / 12);
+    const mes = ((m - 1) % 12) + 1;
+    return { ano, mes };
+  });
+  const mensalidades = mesesFuturos.map(({ ano, mes }) => {
+    const mesStr = String(mes).padStart(2, "0");
+    const dataVcto = `${ano}-${mesStr}-${String(diaVcto).padStart(2,"0")}`;
+    return {
+      id: genId2(),
+      aluna_id: alunaData.id,
+      mes: `${ano}-${mesStr}`,
+      data: null,
+      valor: valorMensal,
+      forma: null,
+      observacao: "Plano anual gerado automaticamente",
+    };
+  });
+  await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert(mensalidades);
   return c.json({ ok: true });
 });
 
@@ -186,6 +199,24 @@ app.put("/pagamentos/:id/pagar", async c => {
   const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").update({ data, valor, forma }).eq("id", id);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
+});
+app.put("/pagamentos/:id/desconto", async c => {
+  const id = c.req.param("id");
+  const { tipo, percentual, valorFixo, motivo } = await c.req.json();
+  // Buscar valor atual
+  const { data: pag } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("valor").eq("id", id).single();
+  if (!pag) return c.json({ error: "Pagamento não encontrado" }, 404);
+  let novoValor = pag.valor;
+  if (tipo === "desconto_pct") novoValor = pag.valor * (1 - percentual / 100);
+  else if (tipo === "desconto_fixo") novoValor = pag.valor - valorFixo;
+  else if (tipo === "acrescimo_pct") novoValor = pag.valor * (1 + percentual / 100);
+  else if (tipo === "acrescimo_fixo") novoValor = pag.valor + valorFixo;
+  else if (tipo === "isencao") novoValor = 0;
+  novoValor = Math.max(0, Math.round(novoValor * 100) / 100);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos")
+    .update({ valor: novoValor, observacao: motivo || tipo }).eq("id", id);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true, novoValor });
 });
 app.delete("/pagamentos/:id", async c => {
   const id = c.req.param("id");
