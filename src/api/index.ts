@@ -1337,3 +1337,52 @@ app.post("/recalcular/:alunaId", async c => {
 
   return c.json({ ok: true, atualizados, valorAlvo: valorParcela, mensagem: `✓ ${atualizados} mensalidades recalculadas para R$${valorParcela}` });
 });
+
+// ══════════════════════════════════════════════════════════
+// SAAS — ONBOARDING DE NOVAS ESCOLAS
+// ══════════════════════════════════════════════════════════
+
+app.post("/saas/cadastrar", async c => {
+  const { nome, email, whatsapp, cidade, estado, senha } = await c.req.json();
+  if (!nome || !email || !senha) return c.json({ error: "nome, email e senha obrigatórios" }, 400);
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const slug = nome.toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-").slice(0,30);
+  const escolaId = genId();
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+
+  // Verificar se email já existe
+  const { data: existe } = await sb_.from("escolas").select("id").eq("email", email).single();
+  if (existe) return c.json({ error: "Email já cadastrado" }, 409);
+
+  // Criar escola
+  await sb_.from("escolas").insert({
+    id: escolaId, nome, slug: slug + "-" + escolaId.slice(0,4),
+    email, whatsapp, cidade, estado, plano: "trial"
+  });
+
+  // Criar config padrão da escola
+  await sb_.from("config").insert({
+    id: escolaId, escola: nome, senha,
+    escola_id: escolaId, nome_admin: "Diretor(a)"
+  });
+
+  // Gerar token de acesso
+  const token = await signToken({ escola: nome, admin: "Diretor(a)", role: "admin", escola_id: escolaId });
+
+  return c.json({
+    ok: true,
+    escola_id: escolaId,
+    slug,
+    token,
+    mensagem: `Bem-vinda ao Splendore, ${nome}! Trial de 30 dias ativo.`,
+    acesso: `https://splendore.rodolfory100.workers.dev?escola=${escolaId}`
+  });
+});
+
+app.get("/saas/escolas", async c => {
+  // Rota admin — listar todas as escolas
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY)
+    .from("escolas").select("id,nome,slug,email,plano,trial_expira_em,ativo,criado_em")
+    .order("criado_em", { ascending: false });
+  return c.json(data || []);
+});
