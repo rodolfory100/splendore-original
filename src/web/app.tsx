@@ -32,6 +32,7 @@ import { FinanceiroPage } from "./pages/FinanceiroPage";
 import { EstoquePage } from "./pages/EstoquePage";
 import { AssinarContratoPage } from "./pages/AssinarContratoPage";
 import { MonitorPage } from "./pages/MonitorPage";
+import { LandingPage } from "./pages/LandingPage";
 import { getAlunas, getPagamentos, getInadimplentes, getTurmas, getConfig, getAvisos, getRenovacoes, getArquivoMorto, mesAtual, savePagamento, initials, genId } from "./lib/api";
 import type { Aluna, Pagamento, Turma, Inadimplente, RenovacaoAluna, Aviso } from "./types";
 
@@ -240,6 +241,7 @@ function App() {
           <Route path="/portal" component={PortalPage} />
           <Route path="/professor" component={ProfessorPage} />
           <Route path="/contratos/assinar/:token" component={AssinarContratoPage} />
+          <Route path="/landing" component={LandingPage} />
           <Route path="/" component={Sistema} />
         </Switch>
       </Provider>
