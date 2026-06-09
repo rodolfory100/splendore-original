@@ -319,7 +319,8 @@ app.get("/mensalidades/:alunaId", async c => {
       data: pag?.data || null,
       forma: pag?.forma || null,
       observacao: pag?.observacao || null,
-      pagamentoId: pag?.id || null,
+      id: pag?.id || null,
+      pagamento: pag ? { id: pag.id, data: pag.data, forma: pag.forma, valor: pag.valor } : null,
       status: pag?.data ? "pago" : "pendente",
     };
   });
