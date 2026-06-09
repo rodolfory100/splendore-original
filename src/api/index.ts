@@ -157,6 +157,13 @@ app.delete("/alunas/:id", async c => {
   return c.json({ ok: true });
 });
 
+app.post("/alunas/:id/restaurar", async c => {
+  const id = c.req.param("id");
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").update({ ativo: true, suspenso: false }).eq("id", id);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+
 // ── TURMAS ────────────────────────────────────────────────────────────────────
 app.get("/turmas", async c => {
   const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").select("*").order("nome");

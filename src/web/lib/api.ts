@@ -76,7 +76,7 @@ export const getRenovacoes = () => req<any[]>('/renovacoes');
 
 // ── ARQUIVO MORTO ─────────────────────────────────────────────────────────────
 export const getArquivoMorto = () => req<any[]>('/arquivo-morto');
-export const restaurarAluna = (id: string) => req<any>(`/arquivo-morto/${id}/restaurar`, { method: 'POST' });
+export const restaurarAluna = (id: string) => req<any>(`/alunas/${id}/restaurar`, { method: 'POST' });
 
 // ── IMPORTAR ──────────────────────────────────────────────────────────────────
 export const importarDados = (data: any) =>
