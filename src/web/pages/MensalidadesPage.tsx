@@ -178,7 +178,7 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
           method: 'POST',
           body: JSON.stringify({
             id: genId(),
-            alunaId: alunaSel.id,
+            aluna_id: alunaSel.id,
             mes: modalPagar.mes,
             data: pagForm.data,
             dataVencimento: modalPagar.dataVencimento,
