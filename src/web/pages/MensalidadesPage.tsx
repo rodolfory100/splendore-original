@@ -30,6 +30,7 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [diagData, setDiagData]       = useState<any>(null);
   const [recalcForm, setRecalcForm]   = useState({ valorTotal:'', parcelas:'12', planoTipo:'mensal' });
+  const [modalComprovante, setModalComprovante] = useState<any|null>(null);
   const [loteForm, setLoteForm]       = useState({ novoValor:'', desconto:'', tipoDesconto: 'valor' as 'valor' | 'percentual', motivo:'' }); // BUG-3
   const [novoVcto, setNovoVcto]       = useState("10");
   const [pagForm, setPagForm]         = useState({ data: new Date().toISOString().split('T')[0], forma:'Pix', valor:'' });
@@ -196,20 +197,17 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
         onRefresh();
       }, 500);
 
-      // WhatsApp
-      const wpp = (alunaSel.whatsapp || '').replace(/\D/g, '');
-      if (wpp) {
-        const msg = encodeURIComponent(
-          `Olá, ${alunaSel.responsavel || alunaSel.nome}! 🩰\n\n` +
-          `Pagamento de *${MESES_FULL[mesIdx]}/${modalPagar.mes.split('-')[0]}* confirmado:\n` +
-          `• Aluna: ${alunaSel.nome}\n` +
-          `• Valor: R$ ${val.toFixed(2).replace('.', ',')}\n` +
-          `• Forma: ${pagForm.forma}\n\nObrigada! ✦ Splendore`
-        );
-        if (confirm("Enviar confirmação WhatsApp?")) {
-          window.open(`https://wa.me/55${wpp}?text=${msg}`, '_blank');
-        }
-      }
+      // Abrir modal comprovante
+      setModalComprovante({
+        nome: alunaSel.nome,
+        responsavel: alunaSel.responsavel || alunaSel.nome,
+        whatsapp: (alunaSel.whatsapp || '').replace(/\D/g, ''),
+        mes: MESES_FULL[mesIdx],
+        ano: modalPagar.mes.split('-')[0],
+        valor: val,
+        forma: pagForm.forma,
+        data: pagForm.data,
+      });
     } catch (e: any) {
       onToast(e.message, "danger");
     } finally {
@@ -478,6 +476,129 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
       </div>
 
       {/* ── MODAL PAGAR ── */}
+      {/* ── MODAL COMPROVANTE ── */}
+      {modalComprovante && (
+        <div className="modal-backdrop" onClick={e=>{if(e.target===e.currentTarget)setModalComprovante(null)}}>
+          <div className="modal-box" style={{maxWidth:420,textAlign:'center'}}>
+            <div style={{fontSize:40,marginBottom:8}}>🩰</div>
+            <div style={{fontSize:20,fontWeight:800,color:'var(--text)',marginBottom:4}}>Pagamento Confirmado!</div>
+            <div style={{fontSize:13,color:'var(--text3)',marginBottom:20}}>O que deseja fazer com o comprovante?</div>
+            
+            {/* Resumo */}
+            <div style={{background:'var(--bg)',borderRadius:12,padding:'14px 18px',marginBottom:20,textAlign:'left'}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                <span style={{fontSize:12,color:'var(--text3)'}}>Aluna</span>
+                <span style={{fontSize:13,fontWeight:600}}>{modalComprovante.nome.split(' ').slice(0,2).join(' ')}</span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                <span style={{fontSize:12,color:'var(--text3)'}}>Referência</span>
+                <span style={{fontSize:13,fontWeight:600}}>{modalComprovante.mes}/{modalComprovante.ano}</span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                <span style={{fontSize:12,color:'var(--text3)'}}>Valor</span>
+                <span style={{fontSize:14,fontWeight:800,color:'var(--green)'}}>R$ {modalComprovante.valor.toFixed(2).replace('.',',')}</span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{fontSize:12,color:'var(--text3)'}}>Forma</span>
+                <span style={{fontSize:13,fontWeight:600}}>{modalComprovante.forma}</span>
+              </div>
+            </div>
+
+            {/* Botões */}
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              <button onClick={()=>{
+                const w = window.open('','_blank');
+                if(!w) return;
+                w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comprovante</title>
+                <style>body{font-family:Arial,sans-serif;max-width:400px;margin:40px auto;padding:20px}
+                .header{text-align:center;border-bottom:2px solid #6C63FF;padding-bottom:16px;margin-bottom:20px}
+                .logo{font-size:24px;font-weight:800;color:#6C63FF}
+                .sub{font-size:12px;color:#888}
+                .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
+                .label{color:#888;font-size:13px}.value{font-weight:600;font-size:13px}
+                .total{font-size:18px;font-weight:800;color:#10B981}
+                .footer{text-align:center;margin-top:20px;font-size:11px;color:#aaa}
+                @media print{button{display:none}}</style></head><body>
+                <div class="header"><div class="logo">🩰 Ballet Splendore</div><div class="sub">Comprovante de Pagamento</div></div>
+                <div class="row"><span class="label">Aluna</span><span class="value">${modalComprovante.nome}</span></div>
+                <div class="row"><span class="label">Responsável</span><span class="value">${modalComprovante.responsavel}</span></div>
+                <div class="row"><span class="label">Referência</span><span class="value">${modalComprovante.mes}/${modalComprovante.ano}</span></div>
+                <div class="row"><span class="label">Data</span><span class="value">${modalComprovante.data.split('-').reverse().join('/')}</span></div>
+                <div class="row"><span class="label">Forma</span><span class="value">${modalComprovante.forma}</span></div>
+                <div class="row"><span class="label">Valor</span><span class="value total">R$ ${modalComprovante.valor.toFixed(2).replace('.',',')}</span></div>
+                <div class="footer">Obrigada pela confiança! ✦ Ballet Splendore — Cuiabá/MT</div>
+                <br><button onclick="window.print()">🖨️ Imprimir</button>
+                </body></html>`);
+                w.document.close();
+                w.print();
+              }} className="btn btn-secondary" style={{width:'100%',justifyContent:'center',gap:8}}>
+                🖨️ Imprimir Comprovante
+              </button>
+              {modalComprovante.whatsapp && (
+                <button onClick={()=>{
+                  const msg = encodeURIComponent(
+                    `Olá, ${modalComprovante.responsavel}! 🩰\n\n` +
+                    `✅ *Pagamento Confirmado*\n` +
+                    `• Aluna: ${modalComprovante.nome}\n` +
+                    `• Referência: ${modalComprovante.mes}/${modalComprovante.ano}\n` +
+                    `• Valor: R$ ${modalComprovante.valor.toFixed(2).replace('.',',')}\n` +
+                    `• Forma: ${modalComprovante.forma}\n` +
+                    `• Data: ${modalComprovante.data.split('-').reverse().join('/')}\n\n` +
+                    `Obrigada! ✦ Ballet Splendore`
+                  );
+                  window.open(`https://wa.me/55${modalComprovante.whatsapp}?text=${msg}`, '_blank');
+                }} className="btn btn-success" style={{width:'100%',justifyContent:'center',gap:8}}>
+                  📱 Enviar WhatsApp
+                </button>
+              )}
+              {modalComprovante.whatsapp && (
+                <button onClick={()=>{
+                  // Imprimir
+                  const w = window.open('','_blank');
+                  if(w){
+                    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comprovante</title>
+                    <style>body{font-family:Arial,sans-serif;max-width:400px;margin:40px auto;padding:20px}
+                    .header{text-align:center;border-bottom:2px solid #6C63FF;padding-bottom:16px;margin-bottom:20px}
+                    .logo{font-size:24px;font-weight:800;color:#6C63FF}.sub{font-size:12px;color:#888}
+                    .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
+                    .label{color:#888;font-size:13px}.value{font-weight:600;font-size:13px}
+                    .total{font-size:18px;font-weight:800;color:#10B981}
+                    .footer{text-align:center;margin-top:20px;font-size:11px;color:#aaa}
+                    @media print{button{display:none}}</style></head><body>
+                    <div class="header"><div class="logo">🩰 Ballet Splendore</div><div class="sub">Comprovante de Pagamento</div></div>
+                    <div class="row"><span class="label">Aluna</span><span class="value">${modalComprovante.nome}</span></div>
+                    <div class="row"><span class="label">Referência</span><span class="value">${modalComprovante.mes}/${modalComprovante.ano}</span></div>
+                    <div class="row"><span class="label">Valor</span><span class="value total">R$ ${modalComprovante.valor.toFixed(2).replace('.',',')}</span></div>
+                    <div class="footer">Obrigada! ✦ Ballet Splendore</div>
+                    <br><button onclick="window.print()">🖨️ Imprimir</button>
+                    </body></html>`);
+                    w.document.close();
+                    w.print();
+                  }
+                  // WhatsApp
+                  setTimeout(()=>{
+                    const msg = encodeURIComponent(
+                      `Olá, ${modalComprovante.responsavel}! 🩰\n\n` +
+                      `✅ *Pagamento Confirmado*\n` +
+                      `• Aluna: ${modalComprovante.nome}\n` +
+                      `• Referência: ${modalComprovante.mes}/${modalComprovante.ano}\n` +
+                      `• Valor: R$ ${modalComprovante.valor.toFixed(2).replace('.',',')}\n` +
+                      `• Forma: ${modalComprovante.forma}\n\nObrigada! ✦ Ballet Splendore`
+                    );
+                    window.open(`https://wa.me/55${modalComprovante.whatsapp}?text=${msg}`, '_blank');
+                  }, 1000);
+                }} className="btn btn-primary" style={{width:'100%',justifyContent:'center',gap:8,background:'var(--brand)'}}>
+                  🖨️📱 Imprimir + WhatsApp
+                </button>
+              )}
+              <button onClick={()=>setModalComprovante(null)} className="btn btn-ghost" style={{width:'100%',justifyContent:'center'}}>
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {modalPagar && (
         <div className="modal-backdrop" onClick={e=>{if(e.target===e.currentTarget)setModalPagar(null)}}>
           <div className="modal-box" style={{maxWidth:400}}>
