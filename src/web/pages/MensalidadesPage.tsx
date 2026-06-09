@@ -675,7 +675,7 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
           <div className="modal-box" style={{maxWidth:400}}>
             <button onClick={()=>setModalPagar(null)} style={{position:'absolute',top:14,right:14,width:26,height:26,borderRadius:'50%',background:'var(--bg2)',border:'none',cursor:'pointer',fontSize:13}}>✕</button>
             <div style={{fontSize:10,fontWeight:800,letterSpacing:1,textTransform:'uppercase',color:'var(--green)',marginBottom:3}}>Pagamento</div>
-            <div style={{fontSize:17,fontWeight:800,marginBottom:4,color:'var(--text)'}}>Registrar Pagamento</div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}><div style={{fontSize:17,fontWeight:800,color:'var(--text)'}}>Registrar Pagamento</div><button onClick={()=>{setModalPagar(null);setModalAjuste(modalPagar);setAjusteForm({tipo:'desconto_pct',percentual:'0',valorFixo:'0',motivo:''}); }} style={{fontSize:11,color:'var(--brand)',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>🏷️ Ajustar valor</button></div>
             <div style={{fontSize:12,color:'var(--text3)',marginBottom:18}}>{alunaSel?.nome} · {MESES_FULL[parseInt(modalPagar.mes.split('-')[1])-1]}/{modalPagar.mes.split('-')[0]}</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
               <div style={{display:'flex',flexDirection:'column',gap:5}}>
