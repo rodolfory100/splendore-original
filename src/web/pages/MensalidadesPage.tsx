@@ -183,7 +183,7 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
             data: pagForm.data,
             dataVencimento: modalPagar.dataVencimento,
             valor: val,
-            status: 'pago',
+
             forma: pagForm.forma,
           }),
         });
