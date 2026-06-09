@@ -44,7 +44,7 @@ export function SemRematriculaPage({ config, onRefresh, onToast }: Props) {
   };
 
   const convidarWhatsApp = (a: any) => {
-    const escola = config?.escola || "Splendore Escola de Dança";
+    const escola = config?.escola || "Hathor Escola de Dança";
     const wpp = (a.whatsapp || "").replace(/\D/g, "");
     const msg = encodeURIComponent(
       `Olá, ${a.responsavel || a.nome}! 🌸\n\nSentimos sua falta na *${escola}*!\n\n` +

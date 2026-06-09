@@ -64,7 +64,7 @@ export function AssinarContratoPage() {
           O contrato foi assinado digitalmente com sucesso.<br />
           Você receberá uma confirmação em breve.
         </div>
-        <div style={{ marginTop: 24, fontSize: 12, color: "#666" }}>Splendore Escola de Dança</div>
+        <div style={{ marginTop: 24, fontSize: 12, color: "#666" }}>Hathor Escola de Dança</div>
       </div>
     </div>
   );
@@ -85,7 +85,7 @@ export function AssinarContratoPage() {
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
         {/* Logo / Header */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: "#d4af64", marginBottom: 6 }}>Splendore</div>
+          <div style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: "#d4af64", marginBottom: 6 }}>Hathor</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", marginBottom: 4 }}>Escola de Dança</div>
           <div style={{ fontSize: 13, color: "#888" }}>Contrato de Matrícula — Assinatura Digital</div>
         </div>

@@ -521,14 +521,14 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
                 .total{font-size:18px;font-weight:800;color:#10B981}
                 .footer{text-align:center;margin-top:20px;font-size:11px;color:#aaa}
                 @media print{button{display:none}}</style></head><body>
-                <div class="header"><div class="logo">🩰 Ballet Splendore</div><div class="sub">Comprovante de Pagamento</div></div>
+                <div class="header"><div class="logo">🩰 Hathor</div><div class="sub">Comprovante de Pagamento</div></div>
                 <div class="row"><span class="label">Aluna</span><span class="value">${modalComprovante.nome}</span></div>
                 <div class="row"><span class="label">Responsável</span><span class="value">${modalComprovante.responsavel}</span></div>
                 <div class="row"><span class="label">Referência</span><span class="value">${modalComprovante.mes}/${modalComprovante.ano}</span></div>
                 <div class="row"><span class="label">Data</span><span class="value">${modalComprovante.data.split('-').reverse().join('/')}</span></div>
                 <div class="row"><span class="label">Forma</span><span class="value">${modalComprovante.forma}</span></div>
                 <div class="row"><span class="label">Valor</span><span class="value total">R$ ${modalComprovante.valor.toFixed(2).replace('.',',')}</span></div>
-                <div class="footer">Obrigada pela confiança! ✦ Ballet Splendore — Cuiabá/MT</div>
+                <div class="footer">Obrigada pela confiança! ✦ Hathor — Cuiabá/MT</div>
                 <br><button onclick="window.print()">🖨️ Imprimir</button>
                 </body></html>`);
                 w.document.close();
@@ -546,7 +546,7 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
                     `• Valor: R$ ${modalComprovante.valor.toFixed(2).replace('.',',')}\n` +
                     `• Forma: ${modalComprovante.forma}\n` +
                     `• Data: ${modalComprovante.data.split('-').reverse().join('/')}\n\n` +
-                    `Obrigada! ✦ Ballet Splendore`
+                    `Obrigada! ✦ Hathor`
                   );
                   window.open(`https://wa.me/55${modalComprovante.whatsapp}?text=${msg}`, '_blank');
                 }} className="btn btn-success" style={{width:'100%',justifyContent:'center',gap:8}}>
@@ -567,13 +567,13 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
                     .total{font-size:18px;font-weight:800;color:#10B981}
                     .footer{text-align:center;margin-top:20px;font-size:11px;color:#aaa}
                     @media print{button{display:none}}</style></head><body onload="window.print()">
-                    <div class="header"><div class="logo">🩰 Ballet Splendore</div><div class="sub">Comprovante de Pagamento</div></div>
+                    <div class="header"><div class="logo">🩰 Hathor</div><div class="sub">Comprovante de Pagamento</div></div>
                     <div class="row"><span class="label">Aluna</span><span class="value">${modalComprovante.nome}</span></div>
                     <div class="row"><span class="label">Referência</span><span class="value">${modalComprovante.mes}/${modalComprovante.ano}</span></div>
                     <div class="row"><span class="label">Data</span><span class="value">${modalComprovante.data.split('-').reverse().join('/')}</span></div>
                     <div class="row"><span class="label">Forma</span><span class="value">${modalComprovante.forma}</span></div>
                     <div class="row"><span class="label">Valor</span><span class="value total">R$ ${modalComprovante.valor.toFixed(2).replace('.',',')}</span></div>
-                    <div class="footer">Obrigada! ✦ Ballet Splendore</div>
+                    <div class="footer">Obrigada! ✦ Hathor</div>
                     </body></html>`;
                     wAmb.document.write(html);
                     wAmb.document.close();
@@ -585,7 +585,7 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
                     `• Aluna: ${modalComprovante.nome}\n` +
                     `• Referência: ${modalComprovante.mes}/${modalComprovante.ano}\n` +
                     `• Valor: R$ ${modalComprovante.valor.toFixed(2).replace('.',',')}\n` +
-                    `• Forma: ${modalComprovante.forma}\n\nObrigada! ✦ Ballet Splendore`
+                    `• Forma: ${modalComprovante.forma}\n\nObrigada! ✦ Hathor`
                   );
                   window.open(`https://wa.me/55${modalComprovante.whatsapp}?text=${msgAmb}`, '_blank');
                 }} className="btn btn-primary" style={{width:'100%',justifyContent:'center',gap:8,background:'var(--brand)'}}>

@@ -216,7 +216,7 @@ function PortalLogin({ onLogin }: { onLogin: (s: Session) => void }) {
         {/* Logo area */}
         <div style={{ textAlign:"center", marginBottom:44 }}>
           <div style={{ width:72, height:72, borderRadius:22, background:"linear-gradient(135deg,#C9A86A,#A88340)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:34, margin:"0 auto 18px", boxShadow:"0 8px 32px rgba(201,168,106,0.3)" }}>🩰</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, fontWeight:700, color:"#F8FAFC", letterSpacing:0.5 }}>Splendore</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, fontWeight:700, color:"#F8FAFC", letterSpacing:0.5 }}>Hathor</div>
           <div style={{ fontSize:12, color:"#475569", letterSpacing:3, textTransform:"uppercase", marginTop:4 }}>Portal da Família</div>
         </div>
 
@@ -297,7 +297,7 @@ function PortalLogin({ onLogin }: { onLogin: (s: Session) => void }) {
 
       {/* Footer */}
       <div style={{ padding:"16px 24px", textAlign:"center", fontSize:11, color:"#1E293B" }}>
-        Splendore Escola de Dança · Cuiabá-MT
+        Hathor Escola de Dança · Cuiabá-MT
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
@@ -545,7 +545,7 @@ function ActionBtn({ icon, title, sub, color, onClick }: any) {
 
 // ─── FINANCEIRO TAB ─────────────────────────────────────────────────────────
 const PIX_CHAVE = "65984743940";
-const PIX_NOME  = "Ballet Splendore";
+const PIX_NOME  = "Hathor";
 const WPP_ESCOLA = "65992283358";
 
 function FinanceiroTab({ aluna, pagamentos, mensalidades, config, mes, pagouMes, isBolsista, showToast, onRefresh }: any) {
@@ -747,7 +747,7 @@ function FinanceiroTab({ aluna, pagamentos, mensalidades, config, mes, pagouMes,
         <div style={{ background:"linear-gradient(135deg,#0D1A2E,#0D2240)", border:"1px solid rgba(99,179,237,0.3)", borderRadius:18, padding:20, marginBottom:20, display:"flex", alignItems:"center", gap:14 }}>
           <div style={{ width:52, height:52, borderRadius:16, background:"rgba(99,179,237,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, flexShrink:0 }}>🎓</div>
           <div>
-            <div style={{ fontSize:15, fontWeight:800, color:"#63B3ED" }}>Bolsista Splendore</div>
+            <div style={{ fontSize:15, fontWeight:800, color:"#63B3ED" }}>Bolsista Hathor</div>
             <div style={{ fontSize:12, color:"rgba(99,179,237,0.6)", marginTop:4 }}>Mensalidade isenta · Bolsa de estudos ativa</div>
           </div>
         </div>

@@ -31,7 +31,7 @@ export function IAPage({ alunas, pagamentos, inadimplentes, config, onToast }: P
   const totalAlunas = alunas.filter(a => a.ativo).length;
 
   const contexto = {
-    escola: config?.escola || "Ballet Splendore",
+    escola: config?.escola || "Hathor",
     mes_atual: mes,
     total_alunas_ativas: totalAlunas,
     total_inadimplentes: inadimplentes.length,
@@ -75,7 +75,7 @@ export function IAPage({ alunas, pagamentos, inadimplentes, config, onToast }: P
     <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 80px)", maxWidth: 800, margin: "0 auto", padding: "0 24px" }}>
       <div style={{ paddingTop: 24, paddingBottom: 16 }}>
         <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", letterSpacing: -0.5 }}>✨ IA Assistente</div>
-        <div style={{ fontSize: 13, color: "var(--text3)", marginTop: 4 }}>Claude — com dados reais do Ballet Splendore</div>
+        <div style={{ fontSize: 13, color: "var(--text3)", marginTop: 4 }}>Claude — com dados reais do Hathor</div>
         <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
           {[
             { label: `${totalAlunas} ativas`, color: "#4F46E5" },
@@ -91,7 +91,7 @@ export function IAPage({ alunas, pagamentos, inadimplentes, config, onToast }: P
         {msgs.length === 0 && (
           <div style={{ textAlign: "center", paddingTop: 40 }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🩰</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>Olá! Sou a IA do Ballet Splendore</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>Olá! Sou a IA do Hathor</div>
             <div style={{ fontSize: 13, color: "var(--text3)", marginBottom: 24 }}>Pergunte sobre alunas, finanças, inadimplência ou peça sugestões</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 500, margin: "0 auto" }}>
               {SUGESTOES.map(s => (
@@ -114,7 +114,7 @@ export function IAPage({ alunas, pagamentos, inadimplentes, config, onToast }: P
               fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap",
               boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
             }}>
-              {m.role === "assistant" && <div style={{ fontSize: 11, fontWeight: 700, color: "var(--brand)", marginBottom: 6 }}>✨ IA Splendore</div>}
+              {m.role === "assistant" && <div style={{ fontSize: 11, fontWeight: 700, color: "var(--brand)", marginBottom: 6 }}>✨ IA Hathor</div>}
               {m.content}
             </div>
           </div>

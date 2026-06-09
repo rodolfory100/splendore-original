@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 // ── CONFIG da escola
 export const config = sqliteTable("config", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  escola: text("escola").default("Splendore Escola de Dança"),
+  escola: text("escola").default("Hathor Escola de Dança"),
   nomeAdmin: text("nome_admin").default("Diretora"),
   whatsapp: text("whatsapp"),
   email: text("email"),

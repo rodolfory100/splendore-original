@@ -164,7 +164,7 @@ export function ImportacaoPage({ onRefresh, onToast, onNavigate }: Props) {
                 <span style={{ fontSize: 24 }}>🎉</span>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green)" }}>Importação concluída!</div>
-                  <div style={{ fontSize: 12, color: "#166534" }}>Todos os dados da Splendore estão no sistema.</div>
+                  <div style={{ fontSize: 12, color: "#166534" }}>Todos os dados da Hathor estão no sistema.</div>
                 </div>
               </div>
 

@@ -31,7 +31,7 @@ export function LoginPage({ onLogin }: { onLogin: (t: string) => void }) {
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 48 }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg,#C9A86A,#A88340)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>🩰</div>
             <div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 700, color: "#F8FAFC" }}>Splendore</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 700, color: "#F8FAFC" }}>Hathor</div>
               <div style={{ fontSize: 11, color: "#475569", letterSpacing: 1.2, textTransform: "uppercase" }}>Sistema de Gestão</div>
             </div>
           </div>

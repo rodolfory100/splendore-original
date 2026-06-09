@@ -52,7 +52,7 @@ export function RenovacoesPage({ renovacoes, config, onRefresh, onToast }: Props
       onToast(`✦ Contrato de ${a.nome} renovado por +12 meses!`, "success");
       // WhatsApp
       const wpp = (a.whatsapp||'').replace(/\D/g,'');
-      const escola = config?.escola || "Splendore";
+      const escola = config?.escola || "Hathor";
       const msg = encodeURIComponent(`Olá, ${a.responsavel}! 🩰\n\nConfirmamos a *renovação do contrato* de ${a.nome} para ${hoje.getFullYear() + 1}! 🎉\n\n• Início: ${hoje.toLocaleDateString('pt-BR')}\n• Fim: ${fimContrato.toLocaleDateString('pt-BR')}\n• Mensalidade: ${fmt(a.valor)}/mês\n\nObrigada pela confiança! ✦\n*${escola}*`);
       if (wpp && confirm("Enviar confirmação por WhatsApp?")) {
         window.open(`https://wa.me/55${wpp}?text=${msg}`, '_blank');
@@ -67,7 +67,7 @@ export function RenovacoesPage({ renovacoes, config, onRefresh, onToast }: Props
 
   const avisar = (a: RenovacaoAluna) => {
     const wpp = (a.whatsapp||'').replace(/\D/g,'');
-    const escola = config?.escola || "Splendore";
+    const escola = config?.escola || "Hathor";
     const msg = a.diasRestantes !== null
       ? `Olá, ${a.responsavel}! 🩰\n\nPassando para lembrá-lo(a) que o contrato de *${a.nome}* vence em *${Math.abs(a.diasRestantes)} ${a.diasRestantes < 0 ? "dias atrás" : "dias"}*.\n\nPara renovar a matrícula, entre em contato conosco! 💛\n\n*${escola}*`
       : `Olá, ${a.responsavel}! 🩰\n\nIdentificamos que *${a.nome}* ainda não tem contrato registrado. Por favor, entre em contato para regularizar. 😊\n\n*${escola}*`;

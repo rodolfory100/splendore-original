@@ -149,7 +149,7 @@ function Sistema() {
             >☰</button>
             {/* Breadcrumb */}
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 12, color: "var(--text3)", fontWeight: 500 }}>Splendore</span>
+              <span style={{ fontSize: 12, color: "var(--text3)", fontWeight: 500 }}>Hathor</span>
               <span style={{ color: "var(--border2)" }}>/</span>
               <span style={{ fontSize: 13, color: "var(--text)", fontWeight: 600 }}>{breadcrumbs[page] || page}</span>
               {loadingData && <div className="spinner" style={{ marginLeft: 8 }} />}

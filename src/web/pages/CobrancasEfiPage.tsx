@@ -67,7 +67,7 @@ export function CobrancasEfiPage({ inadimplentes, config, onRefresh, onToast, on
             `Segue o boleto de mensalidade de *${modalAluna.nome}*:\n\n` +
             `💰 Valor: *${fmt(valor)}*\n📅 Vencimento: ${res.vencimento}\n\n` +
             `🔗 Link do boleto:\n${res.linkBoleto}\n\n` +
-            `*Splendore Escola de Dança* ✨`
+            `*Hathor Escola de Dança* ✨`
           );
           setTimeout(() => window.open(`https://wa.me/55${wpp}?text=${msg}`, "_blank"), 1000);
         }
@@ -321,7 +321,7 @@ export function CobrancasEfiPage({ inadimplentes, config, onRefresh, onToast, on
               {pixModal.aluna?.whatsapp && pixModal.pixCopiaECola && (
                 <button onClick={() => {
                   const wpp = pixModal.aluna.whatsapp.replace(/\D/g,'');
-                  const msg = encodeURIComponent(`Olá, ${pixModal.aluna.responsavel || pixModal.aluna.nome}! 🩰\n\nSegue o Pix para pagamento da mensalidade de *${pixModal.aluna.nome}*:\n\n💰 Valor: *${fmt(pixModal.valor)}*\n\n🔑 *Pix Copia e Cola:*\n${pixModal.pixCopiaECola}\n\nVencimento: ${pixModal.vencimento}\n\n*Splendore Escola de Dança* ✨`);
+                  const msg = encodeURIComponent(`Olá, ${pixModal.aluna.responsavel || pixModal.aluna.nome}! 🩰\n\nSegue o Pix para pagamento da mensalidade de *${pixModal.aluna.nome}*:\n\n💰 Valor: *${fmt(pixModal.valor)}*\n\n🔑 *Pix Copia e Cola:*\n${pixModal.pixCopiaECola}\n\nVencimento: ${pixModal.vencimento}\n\n*Hathor Escola de Dança* ✨`);
                   window.open(`https://wa.me/55${wpp}?text=${msg}`, '_blank');
                 }} style={{ padding: "12px", background: "#3d7a72", border: "none", borderRadius: 8, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
                   📱 Enviar por WhatsApp

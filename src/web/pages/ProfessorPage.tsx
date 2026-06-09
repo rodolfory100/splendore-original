@@ -146,7 +146,7 @@ function ProfLogin({ onLogin }: { onLogin: (s: any) => void }) {
       {/* Logo */}
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <div style={{ width: 68, height: 68, borderRadius: 20, background: 'linear-gradient(135deg,#1e3a5f,#2a5298)', border: '2px solid rgba(99,179,237,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 16px', boxShadow: '0 8px 32px rgba(37,99,235,0.2)' }}>🎓</div>
-        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, fontWeight: 700, color: '#F8FAFC', letterSpacing: 0.5 }}>Splendore</div>
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, fontWeight: 700, color: '#F8FAFC', letterSpacing: 0.5 }}>Hathor</div>
         <div style={{ fontSize: 12, color: '#475569', letterSpacing: 3, textTransform: 'uppercase', marginTop: 4 }}>Portal do Professor</div>
       </div>
 
@@ -211,7 +211,7 @@ function ProfLogin({ onLogin }: { onLogin: (s: any) => void }) {
       </div>
 
       <div style={{ marginTop: 20, fontSize: 12, color: '#1E293B', textAlign: 'center' }}>
-        Splendore Escola de Dança · Cuiabá-MT
+        Hathor Escola de Dança · Cuiabá-MT
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
@@ -259,7 +259,7 @@ function ProfApp({ session, onLogout }: { session: { turmas: Turma[]; nome: stri
           <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg,#1e3a5f,#2a5298)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎓</div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, color: '#F8FAFC' }}>{session.nome}</div>
-            <div style={{ fontSize: 11, color: '#475569' }}>Portal do Professor · Splendore</div>
+            <div style={{ fontSize: 11, color: '#475569' }}>Portal do Professor · Hathor</div>
           </div>
         </div>
         <button onClick={onLogout} style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569' }}>
@@ -563,7 +563,7 @@ function AniversariosTab({ aniversariantes }: { aniversariantes: any[] }) {
               {a.whatsapp && (
                 <button onClick={() => {
                   const w = a.whatsapp.replace(/\D/g,'');
-                  const msg = encodeURIComponent(`🎂 *Feliz Aniversário, ${a.nome.split(' ')[0]}!*\n\nA equipe Splendore deseja um dia lindo para você! 🩰✨\n\nCom carinho, Splendore Escola de Dança 🌸`);
+                  const msg = encodeURIComponent(`🎂 *Feliz Aniversário, ${a.nome.split(' ')[0]}!*\n\nA equipe Hathor deseja um dia lindo para você! 🩰✨\n\nCom carinho, Hathor Escola de Dança 🌸`);
                   window.open(`https://wa.me/55${w}?text=${msg}`, '_blank');
                 }} style={{ padding: '7px 12px', borderRadius: 10, background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.22)', color: '#25D366', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
                   🎉 Parabéns

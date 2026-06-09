@@ -49,7 +49,7 @@ export function CobrancasPage({ inadimplentes, config, onRefresh, onToast }: Pro
   const normais = filtrados.filter(a => !urgentes.find(u => u.id === a.id) && !cronicas.find(c => c.id === a.id));
 
   const montarMensagem = (a: Inadimplente) => {
-    const escola = config?.escola || "Splendore Escola de Dança";
+    const escola = config?.escola || "Hathor Escola de Dança";
     const pix = config?.pix ? `\n• Chave Pix: *${config.pix}*` : "";
     const meses = (a as any).quantidadeMeses > 1 ? `*${(a as any).quantidadeMeses} meses* em aberto` : "mensalidade em aberto";
     if (config?.msgCobranca) {

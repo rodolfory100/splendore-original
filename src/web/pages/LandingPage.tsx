@@ -60,7 +60,7 @@ export function LandingPage() {
     <div style={{ minHeight: "100vh", background: "var(--bg)", fontFamily: "Inter, sans-serif" }}>
       {/* Navbar */}
       <div style={{ padding: "0 32px", height: 58, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
-        <div style={{ fontSize: 18, fontWeight: 800, color: "var(--brand)" }}>🩰 Splendore</div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: "var(--brand)" }}>⚡ Hathor</div>
         <span style={{ fontSize: 12, padding: "4px 12px", borderRadius: 99, background: "var(--brand-bg)", color: "var(--brand)", fontWeight: 600 }}>30 dias grátis</span>
       </div>
 
@@ -68,7 +68,7 @@ export function LandingPage() {
         {/* Hero */}
         <div style={{ textAlign: "center", padding: "64px 0 48px" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "4px 14px", borderRadius: 99, background: "var(--brand-bg)", color: "var(--brand)", marginBottom: 24 }}>
-            ✦ SaaS para Escolas de Dança
+            ✦ Hathor — Gestão Inteligente
           </div>
           <h1 style={{ fontSize: "clamp(28px,5vw,42px)", fontWeight: 800, lineHeight: 1.2, marginBottom: 16, color: "var(--text)", letterSpacing: "-0.02em" }}>
             Gestão completa para sua escola.<br />
@@ -89,7 +89,7 @@ export function LandingPage() {
 
         {/* Features */}
         <div style={{ marginBottom: 64 }}>
-          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.8px", color: "var(--text3)", marginBottom: 24, textAlign: "center" as const }}>Por que o Splendore?</p>
+          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.8px", color: "var(--text3)", marginBottom: 24, textAlign: "center" as const }}>Por que o Hathor?</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 12 }}>
             {FEATURES.map(f => (
               <div key={f.title} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "20px" }}>
@@ -149,7 +149,7 @@ export function LandingPage() {
 
       {/* Footer */}
       <div style={{ borderTop: "1px solid var(--border)", padding: "24px 32px", textAlign: "center" as const }}>
-        <p style={{ fontSize: 12, color: "var(--text3)" }}>Splendore — Gestão inteligente para escolas de dança · Cuiabá, MT</p>
+        <p style={{ fontSize: 12, color: "var(--text3)" }}>Hathor — Hathor — Gestão inteligente para escolas de dança · Cuiabá, MT</p>
       </div>
 
       {/* Toast */}

@@ -53,7 +53,7 @@ function gerarMsgCobranca(aluna: any, mes: string, valor: number, config: any): 
   const nomeAluna = aluna.nome.split(" ")[0];
   const nomeMes = MESES_NOME[mesNum];
   const pix = config?.pixTelefone || "65984743940";
-  const escola = config?.escola || "Ballet Splendore";
+  const escola = config?.escola || "Hathor";
   
   return `Olá! Tudo bem? 🩰
 

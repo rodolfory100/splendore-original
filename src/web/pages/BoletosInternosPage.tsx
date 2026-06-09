@@ -9,7 +9,7 @@ interface Props {
 }
 
 const ESCOLA = {
-  nome: "Ballet Splendore",
+  nome: "Hathor",
   cnpj: "32.934.664/0001-14",
   pix1: "65984743940",
   pix2: "balletsplendore@gmail.com",
@@ -40,7 +40,7 @@ export function BoletosInternosPage({ alunas, inadimplentes, onToast }: Props) {
     const wpp = (aluna.whatsapp || "").replace(/\D/g, "");
     const msg = encodeURIComponent(
       `Olá, ${aluna.responsavel || aluna.nome}! 🌸\n\n` +
-      `Segue o boleto de mensalidade da *Ballet Splendore*:\n\n` +
+      `Segue o boleto de mensalidade da *Hathor*:\n\n` +
       `👩‍🎓 Aluna: *${aluna.nome}*\n` +
       `📅 Referência: *${nomeMes}/${ano}*\n` +
       `💰 Valor: *${fmt(aluna.valor || 0)}*\n` +
@@ -50,7 +50,7 @@ export function BoletosInternosPage({ alunas, inadimplentes, onToast }: Props) {
       `• Pix: *${ESCOLA.pix2}* (Email)\n` +
       `• Pagamento presencial na escola\n\n` +
       `Em caso de dúvidas, entre em contato conosco.\n` +
-      `Ballet Splendore 🩰\n` +
+      `Hathor 🩰\n` +
       `📞 ${ESCOLA.telefone}`
     );
     if (wpp) window.open(`https://wa.me/55${wpp}?text=${msg}`, "_blank");

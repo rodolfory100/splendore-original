@@ -428,7 +428,7 @@ app.post("/ia/chat", async c => {
   const { messages, contexto } = await c.req.json();
   const apiKey = c.env.ANTHROPIC_API_KEY;
   
-  const systemPrompt = `Você é a assistente de gestão do Ballet Splendore, uma escola de dança em Cuiabá-MT dirigida por Yasmin Mendonça Marques.
+  const systemPrompt = `Você é a assistente de gestão do Hathor, uma escola de dança em Cuiabá-MT dirigida por Yasmin Mendonça Marques.
 
 Você tem acesso aos dados reais da escola:
 ${JSON.stringify(contexto, null, 2)}
@@ -470,7 +470,7 @@ app.post("/ia/chat", async c => {
   const { messages, contexto } = await c.req.json();
   const apiKey = c.env.ANTHROPIC_API_KEY;
   
-  const systemPrompt = `Você é a assistente de gestão do Ballet Splendore, uma escola de dança em Cuiabá-MT dirigida por Yasmin Mendonça Marques.
+  const systemPrompt = `Você é a assistente de gestão do Hathor, uma escola de dança em Cuiabá-MT dirigida por Yasmin Mendonça Marques.
 
 Você tem acesso aos dados reais da escola:
 ${JSON.stringify(contexto, null, 2)}
@@ -1262,7 +1262,7 @@ async function verificarSaudeMotor(sb_: any): Promise<any> {
   const falhasConsec = saude.total_falhou || 0;
   if (taxa >= 95 && falhasConsec < 5) return null;
   const severidade = taxa < 80 || falhasConsec >= 5 ? "critical" : "warning";
-  const alerta = { tipo: taxa < 95 ? "TAXA_SUCESSO_BAIXA" : "FALHAS_CONSECUTIVAS", severidade, taxa_sucesso: taxa, falhas_consecutivas: falhasConsec, payload: { timestamp: new Date().toISOString(), sistema: "Ballet Splendore", acao: severidade === "critical" ? "Verificar gateway imediatamente" : "Monitorar" } };
+  const alerta = { tipo: taxa < 95 ? "TAXA_SUCESSO_BAIXA" : "FALHAS_CONSECUTIVAS", severidade, taxa_sucesso: taxa, falhas_consecutivas: falhasConsec, payload: { timestamp: new Date().toISOString(), sistema: "Hathor", acao: severidade === "critical" ? "Verificar gateway imediatamente" : "Monitorar" } };
   await sb_.from("alertas_saude").insert({ id: genId(), ...alerta, webhook_enviado: false });
   return alerta;
 }
@@ -1374,8 +1374,8 @@ app.post("/saas/cadastrar", async c => {
     escola_id: escolaId,
     slug,
     token,
-    mensagem: `Bem-vinda ao Splendore, ${nome}! Trial de 30 dias ativo.`,
-    acesso: `https://splendore.rodolfory100.workers.dev?escola=${escolaId}`
+    mensagem: `Bem-vinda ao Hathor, ${nome}! Trial de 30 dias ativo.`,
+    acesso: `https://hathor.rodolfory100.workers.dev?escola=${escolaId}`
   });
 });
 

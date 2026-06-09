@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "splendore",
+	"name": "hathor",
 	"main": "src/api/index.ts",
 	"compatibility_date": "2024-09-23",
 	"compatibility_flags": [

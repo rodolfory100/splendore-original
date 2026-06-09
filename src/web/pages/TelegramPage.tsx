@@ -145,7 +145,7 @@ export function TelegramPage({ config, onToast, onConfigChange }: Props) {
           <ol style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 2, paddingLeft: 16 }}>
             <li>Abra o Telegram e pesquise <strong>@BotFather</strong></li>
             <li>Envie <code style={{ background:'var(--bg2)',padding:'1px 6px',borderRadius:4 }}>/newbot</code></li>
-            <li>Dê um nome: <strong>Splendore Gestão</strong></li>
+            <li>Dê um nome: <strong>Hathor Gestão</strong></li>
             <li>Dê um username: <strong>splendore_gestao_bot</strong></li>
             <li>Copie o <strong>token</strong> que ele enviar</li>
             <li>Pesquise <strong>@userinfobot</strong> e envie qualquer mensagem</li>

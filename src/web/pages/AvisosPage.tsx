@@ -44,7 +44,7 @@ export function AvisosPage({ avisos, alunas, config, onRefresh, onToast }: Props
   };
 
   const enviarWhatsApp = (mensagem: string) => {
-    const escola = config?.escola || "Splendore Escola de Dança";
+    const escola = config?.escola || "Hathor Escola de Dança";
     const wppEscola = (config?.whatsapp || '').replace(/\D/g,'');
     const msg = `📢 *Aviso — ${escola}*\n\n${mensagem}`;
     const url = wppEscola

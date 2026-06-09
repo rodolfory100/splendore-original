@@ -40,7 +40,7 @@ export function ArquivoMortoPage({ onRefresh, onToast, config }: Props) {
   };
 
   const convidar = (a: any) => {
-    const escola = config?.escola || "Splendore Escola de Dança";
+    const escola = config?.escola || "Hathor Escola de Dança";
     const wpp = (a.whatsapp||'').replace(/\D/g,'');
     const msg = encodeURIComponent(`Olá! 🌸\n\nSentimos a falta de *${a.nome}* aqui na *${escola}*!\n\nQue tal voltarmos? Temos uma vaga esperando por ela. 🩰\n\nEntre em contato para saber mais!\n\nCom carinho, *${escola}* ✨`);
     if (wpp) window.open(`https://wa.me/55${wpp}?text=${msg}`, '_blank');

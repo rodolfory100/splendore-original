@@ -10,7 +10,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   }
 
   componentDidCatch(error: Error) {
-    console.error("Splendore Error:", error);
+    console.error("Hathor Error:", error);
   }
 
   render() {

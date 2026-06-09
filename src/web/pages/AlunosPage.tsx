@@ -132,7 +132,7 @@ export function AlunosPage({ alunas, pagamentos, turmas, onRefresh, onToast }: P
       const a = alunas.find(x=>x.id===pagForm.alunaId);
       if (a?.whatsapp) {
         const wpp = a.whatsapp.replace(/\D/g,'');
-        const msg = encodeURIComponent(`Olá ${a.responsavel||a.nome}! 🩰\n\nPagamento confirmado:\n• Aluna: ${a.nome}\n• Mês: ${pagForm.mes}\n• Valor: R$${Number(pagForm.valor).toFixed(2).replace('.',',')}\n• Forma: ${pagForm.forma}\n\nObrigada! ✦\nSplendore Escola de Dança`);
+        const msg = encodeURIComponent(`Olá ${a.responsavel||a.nome}! 🩰\n\nPagamento confirmado:\n• Aluna: ${a.nome}\n• Mês: ${pagForm.mes}\n• Valor: R$${Number(pagForm.valor).toFixed(2).replace('.',',')}\n• Forma: ${pagForm.forma}\n\nObrigada! ✦\nHathor Escola de Dança`);
         if (confirm("Enviar confirmação por WhatsApp?")) window.open(`https://wa.me/55${wpp}?text=${msg}`,'_blank');
       }
     } catch(e:any) {
@@ -142,7 +142,7 @@ export function AlunosPage({ alunas, pagamentos, turmas, onRefresh, onToast }: P
 
   const gerarCobranca = (a: Aluna) => {
     const wpp = (a.whatsapp||'').replace(/\D/g,'');
-    const msg = `Olá, ${a.responsavel}! 🌸\n\nA mensalidade de *${a.nome}* de ${mes} ainda não foi identificada.\n\n💰 Valor: *${fmt(a.valor)}*\n📅 Vencimento: Dia ${a.vencimento}\n\nApós o pagamento, envie o comprovante aqui. 🙏\n*Splendore Escola de Dança* 🩰`;
+    const msg = `Olá, ${a.responsavel}! 🌸\n\nA mensalidade de *${a.nome}* de ${mes} ainda não foi identificada.\n\n💰 Valor: *${fmt(a.valor)}*\n📅 Vencimento: Dia ${a.vencimento}\n\nApós o pagamento, envie o comprovante aqui. 🙏\n*Hathor Escola de Dança* 🩰`;
     window.open(`https://wa.me/55${wpp}?text=${encodeURIComponent(msg)}`,'_blank');
   };
 

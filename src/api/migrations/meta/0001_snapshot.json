@@ -481,7 +481,7 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false,
-          "default": "'Splendore Escola de Dança'"
+          "default": "'Hathor Escola de Dança'"
         },
         "nome_admin": {
           "name": "nome_admin",

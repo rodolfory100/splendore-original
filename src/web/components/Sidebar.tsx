@@ -69,7 +69,7 @@ interface Props {
 
 export function Sidebar({ currentPage, onNavigate, config, badges, mobileOpen, onToggleMobile }: Props) {
   const nome = config?.nomeAdmin || "Diretora";
-  const escola = config?.escola || "Splendore";
+  const escola = config?.escola || "Hathor";
 
   return (
     <>
