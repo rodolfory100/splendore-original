@@ -201,7 +201,35 @@ app.get("/inadimplentes", async c => {
 });
 
 app.get("/renovacoes", async c => {
-  return c.json([]);
+  const hoje = new Date();
+  const em60 = new Date(hoje); em60.setDate(em60.getDate() + 60);
+  const { data: alunas } = await sb(c.env.SUPABASE_SECRET_KEY)
+    .from("alunas")
+    .select("id,nome,modalidade,whatsapp,responsavel,valor,data_inicio_contrato,data_fim_contrato,contrato_renovacao_automatica")
+    .eq("ativo", true)
+    .not("data_fim_contrato", "is", null)
+    .lte("data_fim_contrato", em60.toISOString().split("T")[0])
+    .order("data_fim_contrato");
+  const result = (alunas || []).map((a: any) => {
+    const fim = new Date(a.data_fim_contrato);
+    const dias = Math.round((fim.getTime() - hoje.getTime()) / 86400000);
+    let urgencia = "ok";
+    if (dias < 0) urgencia = "vencido";
+    else if (dias <= 15) urgencia = "critico";
+    else if (dias <= 30) urgencia = "atencao";
+    else urgencia = "proximo";
+    return {
+      id: a.id, nome: a.nome, modalidade: a.modalidade || "Ballet",
+      whatsapp: a.whatsapp, responsavel: a.responsavel,
+      valor: a.valor || 160,
+      contratoDe: a.data_inicio_contrato,
+      contratoAte: a.data_fim_contrato,
+      diasRestantes: dias,
+      urgencia,
+      renovacaoAutomatica: a.contrato_renovacao_automatica ?? true
+    };
+  });
+  return c.json(result);
 });
 
 app.get("/arquivo-morto", async c => {
