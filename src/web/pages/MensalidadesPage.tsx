@@ -555,8 +555,31 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
               )}
               {modalComprovante.whatsapp && (
                 <button onClick={()=>{
-                  // WhatsApp primeiro (não bloqueia)
-                  const msgAmbos = encodeURIComponent(
+                  // Abrir comprovante para impressão (direto no clique - sem setTimeout)
+                  const wAmb = window.open('','_blank');
+                  if(wAmb){
+                    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comprovante</title>
+                    <style>body{font-family:Arial,sans-serif;max-width:400px;margin:40px auto;padding:20px}
+                    .header{text-align:center;border-bottom:2px solid #6C63FF;padding-bottom:16px;margin-bottom:20px}
+                    .logo{font-size:24px;font-weight:800;color:#6C63FF}.sub{font-size:12px;color:#888}
+                    .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
+                    .label{color:#888;font-size:13px}.value{font-weight:600;font-size:13px}
+                    .total{font-size:18px;font-weight:800;color:#10B981}
+                    .footer{text-align:center;margin-top:20px;font-size:11px;color:#aaa}
+                    @media print{button{display:none}}</style></head><body onload="window.print()">
+                    <div class="header"><div class="logo">🩰 Ballet Splendore</div><div class="sub">Comprovante de Pagamento</div></div>
+                    <div class="row"><span class="label">Aluna</span><span class="value">${modalComprovante.nome}</span></div>
+                    <div class="row"><span class="label">Referência</span><span class="value">${modalComprovante.mes}/${modalComprovante.ano}</span></div>
+                    <div class="row"><span class="label">Data</span><span class="value">${modalComprovante.data.split('-').reverse().join('/')}</span></div>
+                    <div class="row"><span class="label">Forma</span><span class="value">${modalComprovante.forma}</span></div>
+                    <div class="row"><span class="label">Valor</span><span class="value total">R$ ${modalComprovante.valor.toFixed(2).replace('.',',')}</span></div>
+                    <div class="footer">Obrigada! ✦ Ballet Splendore</div>
+                    </body></html>`;
+                    wAmb.document.write(html);
+                    wAmb.document.close();
+                  }
+                  // WhatsApp também direto no clique
+                  const msgAmb = encodeURIComponent(
                     `Olá, ${modalComprovante.responsavel}! 🩰\n\n` +
                     `✅ *Pagamento Confirmado*\n` +
                     `• Aluna: ${modalComprovante.nome}\n` +
@@ -564,31 +587,7 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
                     `• Valor: R$ ${modalComprovante.valor.toFixed(2).replace('.',',')}\n` +
                     `• Forma: ${modalComprovante.forma}\n\nObrigada! ✦ Ballet Splendore`
                   );
-                  window.open(`https://wa.me/55${modalComprovante.whatsapp}?text=${msgAmbos}`, '_blank');
-                  // Imprimir depois
-                  setTimeout(()=>{
-                    const w = window.open('','_blank');
-                    if(w){
-                      w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comprovante</title>
-                      <style>body{font-family:Arial,sans-serif;max-width:400px;margin:40px auto;padding:20px}
-                      .header{text-align:center;border-bottom:2px solid #6C63FF;padding-bottom:16px;margin-bottom:20px}
-                      .logo{font-size:24px;font-weight:800;color:#6C63FF}.sub{font-size:12px;color:#888}
-                      .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
-                      .label{color:#888;font-size:13px}.value{font-weight:600;font-size:13px}
-                      .total{font-size:18px;font-weight:800;color:#10B981}
-                      .footer{text-align:center;margin-top:20px;font-size:11px;color:#aaa}
-                      @media print{button{display:none}}</style></head><body>
-                      <div class="header"><div class="logo">🩰 Ballet Splendore</div><div class="sub">Comprovante de Pagamento</div></div>
-                      <div class="row"><span class="label">Aluna</span><span class="value">${modalComprovante.nome}</span></div>
-                      <div class="row"><span class="label">Referência</span><span class="value">${modalComprovante.mes}/${modalComprovante.ano}</span></div>
-                      <div class="row"><span class="label">Valor</span><span class="value total">R$ ${modalComprovante.valor.toFixed(2).replace('.',',')}</span></div>
-                      <div class="footer">Obrigada! ✦ Ballet Splendore</div>
-                      <br><button onclick="window.print()">🖨️ Imprimir</button>
-                      </body></html>`);
-                      w.document.close();
-                      setTimeout(()=>w.print(), 500);
-                    }
-                  }, 800);
+                  window.open(`https://wa.me/55${modalComprovante.whatsapp}?text=${msgAmb}`, '_blank');
                 }} className="btn btn-primary" style={{width:'100%',justifyContent:'center',gap:8,background:'var(--brand)'}}>
                   🖨️📱 Imprimir + WhatsApp
                 </button>
