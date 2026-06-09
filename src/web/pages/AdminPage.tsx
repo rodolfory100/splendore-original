@@ -26,7 +26,8 @@ function FG({ label, children, span2 }: { label: string; children: React.ReactNo
 }
 
 export function AdminPage({ config, onConfigChange, onToast }: Props) {
-  const [form, setForm] = useState({ escola: "", nomeAdmin: "", whatsapp: "", email: "", endereco: "", cidade: "", instagram: "", cnpj: "", pix: "", msgCobranca: "" });
+  const [form, setForm] = useState({ escola: "", nomeAdmin: "", whatsapp: "", email: "", endereco: "", cidade: "", instagram: "", cnpj: "", pix: "", msgCobranca: "", logo: "" });
+  const [logoPreview, setLogoPreview] = useState("");
   const [senhaAtual, setSenhaAtual] = useState("");
   const [novaSenha, setNovaSenha] = useState("");
   const [confSenha, setConfSenha] = useState("");
@@ -47,6 +48,7 @@ export function AdminPage({ config, onConfigChange, onToast }: Props) {
         cnpj: config.cnpj || "",
         pix: config.pix || "",
         msgCobranca: config.msgCobranca || "",
+        logo: config.logo || "",
       });
     }
   }, [config]);
@@ -152,6 +154,25 @@ export function AdminPage({ config, onConfigChange, onToast }: Props) {
           <FG label="Endereço"><input value={form.endereco} onChange={F("endereco")} style={inputStyle} /></FG>
           <FG label="Cidade"><input value={form.cidade} onChange={F("cidade")} style={inputStyle} /></FG>
           <FG label="Instagram"><input value={form.instagram} onChange={F("instagram")} placeholder="@suaescola" style={inputStyle} /></FG>
+          <FG label="Logo da Escola (URL ou base64)" span2>
+            <input value={form.logo} onChange={e => {
+              const val = e.target.value;
+              setForm((f: any) => ({...f, logo: val}));
+              setLogoPreview(val);
+            }} placeholder="Cole a URL da logo: https://..." style={inputStyle} />
+            <input type="file" accept="image/*" onChange={e => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = ev => {
+                const b64 = ev.target?.result as string;
+                setForm((f: any) => ({...f, logo: b64}));
+                setLogoPreview(b64);
+              };
+              reader.readAsDataURL(file);
+            }} style={{...inputStyle, padding: '6px'}} />
+            {logoPreview && <img src={logoPreview} alt="Preview logo" style={{height: 60, objectFit: 'contain', borderRadius: 8, marginTop: 6, background: '#f0f0f0', padding: 4}} />}
+          </FG>
           <FG label="CNPJ / CPF"><input value={form.cnpj} onChange={F("cnpj")} style={inputStyle} /></FG>
           <FG label="Chave Pix" span2><input value={form.pix} onChange={F("pix")} placeholder="CPF, CNPJ, e-mail ou telefone" style={inputStyle} /></FG>
           <FG label="Mensagem padrão de cobrança (use {responsavel}, {aluna}, {valor}, {vencimento})" span2>

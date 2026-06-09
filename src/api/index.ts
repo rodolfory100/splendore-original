@@ -64,6 +64,12 @@ app.put("/config", async c => {
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
+app.post("/config", async c => {
+  const body = await c.req.json();
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").upsert({ id: "main", ...body });
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
 
 // ── ALUNAS ────────────────────────────────────────────────────────────────────
 app.get("/alunas", async c => {
@@ -85,7 +91,7 @@ app.get("/alunas", async c => {
 });
 
 const mapAluna = (b: any) => ({
-  id: b.id, nome: b.nome, responsavel: b.responsavel,
+  id: b.id || crypto.randomUUID().replace(/-/g,'').slice(0,12), nome: b.nome, responsavel: b.responsavel,
   whatsapp: b.whatsapp, email: b.email,
   cpf_responsavel: b.cpfResponsavel || b.cpf_responsavel,
   cpf_responsavel2: b.cpfResponsavel2 || b.cpf_responsavel2,
@@ -102,8 +108,24 @@ const mapAluna = (b: any) => ({
 
 app.post("/alunas", async c => {
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").insert(mapAluna(body));
+  const alunaData = mapAluna(body);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").insert(alunaData);
   if (error) return c.json({ error: error.message }, 500);
+  // Gerar mensalidades automaticamente para o ano atual
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const anoAtual = new Date().getFullYear();
+  const mesAtual = new Date().getMonth() + 1;
+  const meses = Array.from({length: 12}, (_,i) => i+1).filter(m => m >= mesAtual);
+  const mensalidades = meses.map(m => ({
+    id: genId(),
+    aluna_id: alunaData.id,
+    mes: `${anoAtual}-${String(m).padStart(2,'0')}`,
+    valor: body.valor || 160,
+    observacao: 'Gerado automaticamente no cadastro'
+  }));
+  if (mensalidades.length > 0) {
+    await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert(mensalidades);
+  }
   return c.json({ ok: true });
 });
 
