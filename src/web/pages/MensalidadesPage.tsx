@@ -7,7 +7,6 @@ const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho
 const MESES_ABR  = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
 interface Mensalidade {
-  mes: string; diaVencimento: number; dataVencimento: string;
   valor: number; status: 'pago'|'pendente'|'atrasado'; pagamento: any|null;
 }
 interface Props { alunas: Aluna[]; onToast: (msg:string,type?:"success"|"danger"|"gold")=>void; onRefresh:()=>void; }
@@ -181,7 +180,6 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
             aluna_id: alunaSel.id,
             mes: modalPagar.mes,
             data: pagForm.data,
-            dataVencimento: modalPagar.dataVencimento,
             valor: val,
 
             forma: pagForm.forma,
@@ -444,7 +442,6 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
 
                           {/* Vencimento */}
                           <div style={{ fontSize:10, color:'var(--text3)', marginBottom: isPago?5:7 }}>
-                            {m.dataVencimento?.split('-').slice(1).reverse().join('/')}/{m.dataVencimento?.split('-')[0].slice(2)}
                           </div>
 
                           {/* Pago: data */}
@@ -505,7 +502,6 @@ export function MensalidadesPage({ alunas, onToast, onRefresh }: Props) {
               </div>
             </div>
             <div style={{marginTop:10,padding:'8px 12px',background:'var(--gold-bg)',borderRadius:8,fontSize:11,color:'#92610A',border:'1px solid rgba(201,168,106,0.3)'}}>
-              Vencimento: {modalPagar.dataVencimento?.split('-').reverse().join('/')} · {fmt(modalPagar.valor)}
               {modalPagar.status==='atrasado' && <span style={{marginLeft:8,color:'var(--red)',fontWeight:700}}>⚠️ ATRASADO</span>}
             </div>
             <div style={{display:'flex',gap:8,marginTop:16,paddingTop:14,borderTop:'1px solid var(--border)',justifyContent:'flex-end'}}>
