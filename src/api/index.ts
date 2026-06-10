@@ -402,6 +402,22 @@ app.post("/mensalidades", async c => {
   return c.json({ ok: true });
 });
 
+app.put("/mensalidades/editar/:id", async c => {
+  const id = c.req.param("id");
+  const b = await c.req.json();
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+  const { data: reg } = await sb_.from("pagamentos").select("id,data").eq("id", id).single();
+  if (!reg) return c.json({ error: "Mensalidade nao encontrada" }, 404);
+  if (reg.data) return c.json({ error: "Mensalidade ja paga - nao pode ser editada" }, 400);
+  const upd: any = {};
+  if (b.valor != null) upd.valor = b.valor;
+  if (b.observacao !== undefined) upd.observacao = b.observacao;
+  if (b.vencimento !== undefined) upd.vencimento = b.vencimento;
+  const { error } = await sb_.from("pagamentos").update(upd).eq("id", id);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+
 app.delete("/mensalidades/:id", async c => {
   const id = c.req.param("id");
   const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").delete().eq("id", id);
@@ -668,7 +684,33 @@ app.post("/config/senha", async c => {
 app.post("/efi/boleto", async c => { return c.json({ error: "Efi não configurado" }, 400); });
 app.post("/efi/pix", async c => { return c.json({ error: "Efi não configurado" }, 400); });
 app.post("/importar", async c => { return c.json({ ok: true, importados: 0 }); });
-app.post("/mensalidades/editar-lote", async c => { return c.json({ ok: true, atualizados: 0 }); });
+app.post("/mensalidades/editar-lote", async c => {
+  const b = await c.req.json();
+  const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
+  const { data: aluna } = await sb_.from("alunas").select("*").eq("id", b.alunaId).single();
+  if (!aluna) return c.json({ error: "Aluna nao encontrada" }, 404);
+  const calcValor = (base: number) => {
+    if (b.novoValor != null) return b.novoValor;
+    if (b.desconto != null) return (b.tipoDesconto || "").includes("percent") ? Math.round(base * (1 - b.desconto / 100) * 100) / 100 : Math.max(0, base - b.desconto);
+    return base;
+  };
+  let atualizados = 0, pulados = 0;
+  if (b.mesIds?.length) {
+    const { data: regs } = await sb_.from("pagamentos").select("id,valor,data").in("id", b.mesIds).eq("aluna_id", b.alunaId);
+    for (const r of (regs || [])) {
+      if (r.data) { pulados++; continue; }
+      const { error } = await sb_.from("pagamentos").update({ valor: calcValor(r.valor || aluna.valor), observacao: b.motivo || null }).eq("id", r.id);
+      if (!error) atualizados++;
+    }
+  }
+  if (b.meses?.length) {
+    const genId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+    const rows = b.meses.map((mes: string) => ({ id: genId(), aluna_id: b.alunaId, mes, valor: calcValor(aluna.valor), data: null, observacao: b.motivo || null }));
+    const { error } = await sb_.from("pagamentos").insert(rows);
+    if (!error) atualizados += rows.length;
+  }
+  return c.json({ ok: true, atualizados, pulados });
+});
 app.get("/metricas/retencao", async c => { return c.json({ retencao: 0, churn: 0, novas: 0 }); });
 app.post("/portal/auth", async c => { return c.json({ ok: false, error: "Portal não configurado" }); });
 app.post("/portal/enviar-comprovante", async c => { return c.json({ ok: true }); });
