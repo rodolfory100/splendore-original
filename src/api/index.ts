@@ -73,7 +73,7 @@ app.post("/config", async c => {
 
 // ── ALUNAS ────────────────────────────────────────────────────────────────────
 app.get("/alunas", async c => {
-  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").order("nome");
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("ativo", true).order("nome");
   if (error) return c.json({ error: error.message }, 500);
   const mapped = (data || []).map((a: any) => ({
     id: a.id, nome: a.nome, responsavel: a.responsavel,
