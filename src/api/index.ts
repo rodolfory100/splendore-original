@@ -64,6 +64,25 @@ async function verifyToken(token: string, secret: string): Promise<any | null> {
   } catch { return null; }
 }
 
+const ROTAS_PUBLICAS = [
+  "/api/login", "/api/auth/login",
+  "/api/portal/auth", "/api/portal/enviar-comprovante",
+  "/api/saas/cadastrar",
+];
+
+app.use("*", async (c, next) => {
+  const path = new URL(c.req.url).pathname;
+  if (c.req.method === "OPTIONS") return next();
+  if (ROTAS_PUBLICAS.includes(path)) return next();
+  if (path.startsWith("/api/webhook/")) return next();
+  const auth = c.req.header("Authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) return c.json({ error: "Nao autenticado" }, 401);
+  const payload = await verifyToken(token, c.env.JWT_SECRET);
+  if (!payload) return c.json({ error: "Token invalido ou expirado" }, 401);
+  await next();
+});
+
 app.post("/login", async c => {
   const { senha } = await c.req.json();
   const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin").eq("id","main").single();
