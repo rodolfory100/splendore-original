@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://orovbbxhzizbpphggqxa.supabase.co";
 
-type Bindings = { RATE_LIMIT: KVNamespace; SUPABASE_SECRET_KEY: string; ANTHROPIC_API_KEY: string; JWT_SECRET: string };
+type Bindings = { RATE_LIMIT: KVNamespace; SUPABASE_SECRET_KEY: string; ANTHROPIC_API_KEY: string; JWT_SECRET: string; FILA_ATIVA?: string };
 const app = new Hono<{ Bindings: Bindings }>().basePath("api");
 
 const sb = (key: string) => createClient(SUPABASE_URL, key);
@@ -823,6 +823,9 @@ app.post("/fila/enfileirar", async c => {
 
 // Processa fila — executa cobranças pendentes com retry
 app.post("/fila/processar", async c => {
+    if (c.env.FILA_ATIVA !== "true") {
+      return c.json({ ok: false, error: "Motor de cobranca automatica desativado. Gateway real (Asaas) nao configurado." }, 403);
+    }
   const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
   const agora = new Date().toISOString();
@@ -1097,6 +1100,9 @@ app.get("/fila/status", async c => {
 
 // Enfileira cobranças em massa — até 10.000 de uma vez
 app.post("/fila/enfileirar-lote", async c => {
+    if (c.env.FILA_ATIVA !== "true") {
+      return c.json({ ok: false, error: "Motor de cobranca automatica desativado. Gateway real (Asaas) nao configurado." }, 403);
+    }
   const { mes } = await c.req.json();
   const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
