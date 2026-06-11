@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://orovbbxhzizbpphggqxa.supabase.co";
 
-type Bindings = { RATE_LIMIT: KVNamespace; SUPABASE_SECRET_KEY: string; ANTHROPIC_API_KEY: string };
+type Bindings = { RATE_LIMIT: KVNamespace; SUPABASE_SECRET_KEY: string; ANTHROPIC_API_KEY: string; JWT_SECRET: string };
 const app = new Hono<{ Bindings: Bindings }>().basePath("api");
 
 const sb = (key: string) => createClient(SUPABASE_URL, key);
@@ -24,31 +24,51 @@ app.onError((err, c) => c.json({ error: err.message, id: crypto.randomUUID() }, 
 app.notFound(c => c.json({ error: "Not found" }, 404));
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
-const JWT_SECRET = "splendore_jwt_2026_ballet";
-
-async function signToken(payload: any): Promise<string> {
-  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const body = btoa(JSON.stringify({ ...payload, iat: Date.now(), exp: Date.now() + 86400000 }));
-  const sig = btoa(`${header}.${body}.${JWT_SECRET}`).replace(/=/g,"");
-  return `${header}.${body}.${sig}`;
+async function getKey(secret: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"]
+  );
 }
 
-function verifyToken(token: string): boolean {
+function b64url(buf: ArrayBuffer | Uint8Array): string {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let str = "";
+  for (const b of bytes) str += String.fromCharCode(b);
+  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
+
+async function signToken(payload: any, secret: string): Promise<string> {
+  const header = b64url(new TextEncoder().encode(JSON.stringify({ alg: "HS256", typ: "JWT" })));
+  const body = b64url(new TextEncoder().encode(JSON.stringify({ ...payload, iat: Date.now(), exp: Date.now() + 86400000 })));
+  const data = header + "." + body;
+  const key = await getKey(secret);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return data + "." + b64url(sig);
+}
+
+async function verifyToken(token: string, secret: string): Promise<any | null> {
   try {
     const parts = token.split(".");
-    if (parts.length !== 3) return false;
-    const payload = JSON.parse(atob(parts[1]));
-    if (payload.exp < Date.now()) return false;
-    const expectedSig = btoa(`${parts[0]}.${parts[1]}.${JWT_SECRET}`).replace(/=/g,"");
-    return parts[2] === expectedSig;
-  } catch { return false; }
+    if (parts.length !== 3) return null;
+    const data = parts[0] + "." + parts[1];
+    const key = await getKey(secret);
+    const expectedSig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+    if (b64url(expectedSig) !== parts[2]) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    if (payload.exp < Date.now()) return null;
+    return payload;
+  } catch { return null; }
 }
 
 app.post("/login", async c => {
   const { senha } = await c.req.json();
   const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin").eq("id","main").single();
   if (!data || data.senha !== senha) return c.json({ error: "Senha incorreta" }, 401);
-  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin" });
+  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin" }, c.env.JWT_SECRET);
   return c.json({ token, escola: data.escola, admin: data.nome_admin });
 });
 
@@ -320,7 +340,7 @@ app.post("/auth/login", async c => {
   const { senha } = await c.req.json();
   const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin").eq("id","main").single();
   if (!data || data.senha !== senha) return c.json({ error: "Senha incorreta" }, 401);
-  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin" });
+  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin" }, c.env.JWT_SECRET);
   return c.json({ ok: true, token, escola: data.escola, admin: data.nome_admin });
 });
 
@@ -1469,7 +1489,7 @@ app.post("/saas/cadastrar", async c => {
   });
 
   // Gerar token de acesso
-  const token = await signToken({ escola: nome, admin: "Diretor(a)", role: "admin", escola_id: escolaId });
+  const token = await signToken({ escola: nome, admin: "Diretor(a)", role: "admin", escola_id: escolaId }, c.env.JWT_SECRET);
 
   return c.json({
     ok: true,
