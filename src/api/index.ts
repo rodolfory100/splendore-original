@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://orovbbxhzizbpphggqxa.supabase.co";
 
-type Bindings = { RATE_LIMIT: KVNamespace; SUPABASE_SECRET_KEY: string; ANTHROPIC_API_KEY: string; JWT_SECRET: string; FILA_ATIVA?: string };
+type Bindings = { RATE_LIMIT: KVNamespace; SUPABASE_SECRET_KEY: string; ANTHROPIC_API_KEY: string; JWT_SECRET: string; FILA_ATIVA?: string; SAAS_ATIVO?: string };
 const app = new Hono<{ Bindings: Bindings }>().basePath("api");
 
 const sb = (key: string) => createClient(SUPABASE_URL, key);
@@ -581,46 +581,7 @@ Quando sugerir mensagens de cobrança, faça de forma simpática e profissional.
 });
 
 
-app.post("/ia/chat", async c => {
-  const { messages, contexto } = await c.req.json();
-  const apiKey = c.env.ANTHROPIC_API_KEY;
-  
-  const systemPrompt = `Você é a assistente de gestão do Hathor, uma escola de dança em Cuiabá-MT dirigida por Yasmin Mendonça Marques.
 
-Você tem acesso aos dados reais da escola:
-${JSON.stringify(contexto, null, 2)}
-
-Responda sempre em português brasileiro, de forma direta e útil.
-Você pode responder perguntas sobre:
-- Alunas (quem está devendo, aniversários, modalidades)
-- Financeiro (receita, inadimplência, pagamentos)
-- Turmas e horários
-- Sugestões de cobranças via WhatsApp
-- Análise de churn e risco de cancelamento
-- Relatórios e resumos mensais
-
-Quando listar alunas inadimplentes, inclua o WhatsApp para facilitar a cobrança.
-Quando sugerir mensagens de cobrança, faça de forma simpática e profissional.`;
-
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model: "claude-opus-4-5",
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: messages
-    })
-  });
-  
-  const data = await resp.json() as any;
-  if (!resp.ok) return c.json({ error: data.error?.message || "Erro na IA" }, 500);
-  return c.json({ resposta: data.content[0].text });
-});
 
 
 app.post("/mensalidades/gerar/:alunaId", async c => {
@@ -1490,6 +1451,9 @@ app.post("/recalcular/:alunaId", async c => {
 // ══════════════════════════════════════════════════════════
 
 app.post("/saas/cadastrar", async c => {
+    if (c.env.SAAS_ATIVO !== "true") {
+      return c.json({ ok: false, error: "Cadastro de novas escolas desativado. Multi-tenancy nao implementado." }, 403);
+    }
   const { nome, email, whatsapp, cidade, estado, senha } = await c.req.json();
   if (!nome || !email || !senha) return c.json({ error: "nome, email e senha obrigatórios" }, 400);
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
