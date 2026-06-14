@@ -98,6 +98,7 @@ app.use("*", async (c, next) => {
   if (!token) return c.json({ error: "Nao autenticado" }, 401);
   const payload = await verifyToken(token, c.env.JWT_SECRET);
   if (!payload) return c.json({ error: "Token invalido ou expirado" }, 401);
+  c.set("escola_id", payload.escola_id || "splendore001");
   await next();
 });
 
@@ -105,7 +106,7 @@ app.post("/login", async c => {
   const { senha } = await c.req.json();
   const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin").eq("id","main").single();
   if (!data || !(await verificarSenha(senha, data.senha))) return c.json({ error: "Senha incorreta" }, 401);
-  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin" }, c.env.JWT_SECRET);
+  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin", escola_id: data.escola_id || "splendore001" }, c.env.JWT_SECRET);
   return c.json({ token, escola: data.escola, admin: data.nome_admin });
 });
 
@@ -130,7 +131,8 @@ app.post("/config", async c => {
 
 // ── ALUNAS ────────────────────────────────────────────────────────────────────
 app.get("/alunas", async c => {
-  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("ativo", true).order("nome");
+  const escolaId = c.get("escola_id");
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("escola_id", escolaId).eq("ativo", true).order("nome");
   if (error) return c.json({ error: error.message }, 500);
   const mapped = (data || []).map((a: any) => ({
     id: a.id, nome: a.nome, responsavel: a.responsavel,
@@ -377,7 +379,7 @@ app.post("/auth/login", async c => {
   const { senha } = await c.req.json();
   const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin").eq("id","main").single();
   if (!data || !(await verificarSenha(senha, data.senha))) return c.json({ error: "Senha incorreta" }, 401);
-  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin" }, c.env.JWT_SECRET);
+  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin", escola_id: data.escola_id || "splendore001" }, c.env.JWT_SECRET);
   return c.json({ ok: true, token, escola: data.escola, admin: data.nome_admin });
 });
 
