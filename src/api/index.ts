@@ -64,6 +64,24 @@ async function verifyToken(token: string, secret: string): Promise<any | null> {
   } catch { return null; }
 }
 
+async function hashSenha(senha: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(senha), { name: "PBKDF2" }, false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, key, 256);
+  return "pbkdf2$" + b64url(salt) + "$" + b64url(new Uint8Array(bits));
+}
+
+async function verificarSenha(senha: string, armazenado: string): Promise<boolean> {
+  if (!armazenado || !armazenado.startsWith("pbkdf2$")) {
+    return senha === armazenado;
+  }
+  const partes = armazenado.split("$");
+  const salt = Uint8Array.from(atob(partes[1].replace(/-/g, "+").replace(/_/g, "/")), x => x.charCodeAt(0));
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(senha), { name: "PBKDF2" }, false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, key, 256);
+  return b64url(new Uint8Array(bits)) === partes[2];
+}
+
 const ROTAS_PUBLICAS = [
   "/api/login", "/api/auth/login",
   "/api/portal/auth", "/api/portal/enviar-comprovante",
@@ -86,7 +104,7 @@ app.use("*", async (c, next) => {
 app.post("/login", async c => {
   const { senha } = await c.req.json();
   const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin").eq("id","main").single();
-  if (!data || data.senha !== senha) return c.json({ error: "Senha incorreta" }, 401);
+  if (!data || !(await verificarSenha(senha, data.senha))) return c.json({ error: "Senha incorreta" }, 401);
   const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin" }, c.env.JWT_SECRET);
   return c.json({ token, escola: data.escola, admin: data.nome_admin });
 });
@@ -358,7 +376,7 @@ app.get("/cobrancas", async c => {
 app.post("/auth/login", async c => {
   const { senha } = await c.req.json();
   const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin").eq("id","main").single();
-  if (!data || data.senha !== senha) return c.json({ error: "Senha incorreta" }, 401);
+  if (!data || !(await verificarSenha(senha, data.senha))) return c.json({ error: "Senha incorreta" }, 401);
   const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin" }, c.env.JWT_SECRET);
   return c.json({ ok: true, token, escola: data.escola, admin: data.nome_admin });
 });
@@ -670,15 +688,15 @@ app.post("/avaliacoes", async c => { return c.json({ ok: true }); });
 app.put("/config/senha", async c => {
   const { senhaAtual, novaSenha } = await c.req.json();
   const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("id","main").single();
-  if (!data || data.senha !== senhaAtual) return c.json({ error: "Senha atual incorreta" }, 401);
-  await sb(c.env.SUPABASE_SECRET_KEY).from("config").update({ senha: novaSenha }).eq("id","main");
+  if (!data || !(await verificarSenha(senhaAtual, data.senha))) return c.json({ error: "Senha atual incorreta" }, 401);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("config").update({ senha: await hashSenha(novaSenha) }).eq("id","main");
   return c.json({ ok: true });
 });
 app.post("/config/senha", async c => {
   const { senhaAtual, novaSenha } = await c.req.json();
   const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("id","main").single();
-  if (!data || data.senha !== senhaAtual) return c.json({ error: "Senha atual incorreta" }, 401);
-  await sb(c.env.SUPABASE_SECRET_KEY).from("config").update({ senha: novaSenha }).eq("id","main");
+  if (!data || !(await verificarSenha(senhaAtual, data.senha))) return c.json({ error: "Senha atual incorreta" }, 401);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("config").update({ senha: await hashSenha(novaSenha) }).eq("id","main");
   return c.json({ ok: true });
 });
 app.post("/efi/boleto", async c => { return c.json({ error: "Efi não configurado" }, 400); });
