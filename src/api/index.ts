@@ -104,7 +104,7 @@ app.use("*", async (c, next) => {
 
 app.post("/login", async c => {
   const { senha } = await c.req.json();
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin").eq("id","main").single();
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id").eq("id","main").single();
   if (!data || !(await verificarSenha(senha, data.senha))) return c.json({ error: "Senha incorreta" }, 401);
   const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin", escola_id: data.escola_id || "splendore001" }, c.env.JWT_SECRET);
   return c.json({ token, escola: data.escola, admin: data.nome_admin });
@@ -380,7 +380,7 @@ app.get("/cobrancas", async c => {
 
 app.post("/auth/login", async c => {
   const { senha } = await c.req.json();
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin").eq("id","main").single();
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id").eq("id","main").single();
   if (!data || !(await verificarSenha(senha, data.senha))) return c.json({ error: "Senha incorreta" }, 401);
   const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin", escola_id: data.escola_id || "splendore001" }, c.env.JWT_SECRET);
   return c.json({ ok: true, token, escola: data.escola, admin: data.nome_admin });
