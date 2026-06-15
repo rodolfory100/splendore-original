@@ -296,14 +296,14 @@ app.delete("/pagamentos/:id", async c => {
 // ── CONTRATOS & PARCELAS ──────────────────────────────────────────────────────
 app.get("/contratos/:alunaId", async c => {
   const alunaId = c.req.param("alunaId");
-  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("contratos").select("*, parcelas(*)").eq("aluna_id", alunaId).order("created_at", { ascending: false });
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("contratos").select("*, parcelas(*)").eq("aluna_id", alunaId).eq("escola_id", c.get("escola_id")).order("created_at", { ascending: false });
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data || []);
 });
 
 app.post("/contratos", async c => {
   const { contrato, parcelas } = await c.req.json();
-  const { error: ce } = await sb(c.env.SUPABASE_SECRET_KEY).from("contratos").insert(contrato);
+  const { error: ce } = await sb(c.env.SUPABASE_SECRET_KEY).from("contratos").insert({ ...contrato, escola_id: c.get("escola_id") });
   if (ce) return c.json({ error: ce.message }, 500);
   const { error: pe } = await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").insert(parcelas.map((x:any)=>({ ...x, escola_id: c.get("escola_id") })));
   if (pe) return c.json({ error: pe.message }, 500);
@@ -313,7 +313,7 @@ app.post("/contratos", async c => {
 app.put("/parcelas/:id", async c => {
   const id = c.req.param("id");
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").update(body).eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").update(body).eq("id", id).eq("escola_id", c.get("escola_id"));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -396,7 +396,7 @@ app.post("/contratos/gerar", async c => {
   const dataFim = new Date(ano, mes - 1 + 12, 1);
   const dataFimStr = dataFim.getFullYear() + "-" + String(dataFim.getMonth()+1).padStart(2,"0");
   const contrato = { id: contratoId, aluna_id: alunaId, data_inicio: mesInicio, data_fim: dataFimStr, total_parcelas: 12, status: "ativo" };
-  const { error: ce } = await sb(c.env.SUPABASE_SECRET_KEY).from("contratos").insert(contrato);
+  const { error: ce } = await sb(c.env.SUPABASE_SECRET_KEY).from("contratos").insert({ ...contrato, escola_id: c.get("escola_id") });
   if (ce) return c.json({ error: ce.message }, 500);
   const parcelas = [];
   for (let i = 0; i < 12; i++) {
@@ -413,7 +413,7 @@ app.post("/contratos/gerar", async c => {
 
 app.get("/contratos/aluna/:alunaId", async c => {
   const alunaId = c.req.param("alunaId");
-  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("contratos").select("*, parcelas(*)").eq("aluna_id", alunaId).order("created_at", { ascending: false });
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("contratos").select("*, parcelas(*)").eq("aluna_id", alunaId).eq("escola_id", c.get("escola_id")).order("created_at", { ascending: false });
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data || []);
 });
@@ -423,7 +423,7 @@ app.put("/parcelas/:id/pagar", async c => {
   const { valorPago, formaPagamento, alunaId, mes } = await c.req.json();
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
   const hoje = new Date().toISOString().split("T")[0];
-  await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").update({ status: "pago", data_pagamento: hoje, valor_pago: valorPago, forma_pagamento: formaPagamento }).eq("id", id);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").update({ status: "pago", data_pagamento: hoje, valor_pago: valorPago, forma_pagamento: formaPagamento }).eq("id", id).eq("escola_id", c.get("escola_id"));
   await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert({ id: genId(), aluna_id: alunaId, mes, data: hoje, valor: valorPago, forma: formaPagamento, observacao: "Parcela paga", escola_id: c.get("escola_id") });
   return c.json({ ok: true });
 });
@@ -489,75 +489,75 @@ app.delete("/mensalidades/:id", async c => {
 
 
 app.get("/cameras", async c => {
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").select("*").order("nome");
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").select("*").eq("escola_id", c.get("escola_id")).order("nome");
   return c.json(data || []);
 });
 app.post("/cameras", async c => {
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").insert(body);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").insert({ ...body, escola_id: c.get("escola_id") });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 app.put("/cameras/:id", async c => {
   const id = c.req.param("id");
   const body = await c.req.json();
-  await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").update(body).eq("id", id);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").update(body).eq("id", id).eq("escola_id", c.get("escola_id"));
   return c.json({ ok: true });
 });
 app.delete("/cameras/:id", async c => {
   const id = c.req.param("id");
-  await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").update({ ativo: false }).eq("id", id);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("cameras").update({ ativo: false }).eq("id", id).eq("escola_id", c.get("escola_id"));
   return c.json({ ok: true });
 });
 app.get("/estoque", async c => {
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").select("*").order("nome");
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").select("*").eq("escola_id", c.get("escola_id")).order("nome");
   return c.json(data || []);
 });
 app.post("/estoque", async c => {
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").insert(body);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").insert({ ...body, escola_id: c.get("escola_id") });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 app.put("/estoque/:id", async c => {
   const id = c.req.param("id");
   const body = await c.req.json();
-  await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").update(body).eq("id", id);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").update(body).eq("id", id).eq("escola_id", c.get("escola_id"));
   return c.json({ ok: true });
 });
 app.delete("/estoque/:id", async c => {
   const id = c.req.param("id");
-  await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").delete().eq("id", id);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("estoque").delete().eq("id", id).eq("escola_id", c.get("escola_id"));
   return c.json({ ok: true });
 });
 app.get("/emprestimos", async c => {
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("emprestimos").select("*").order("created_at", { ascending: false });
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("emprestimos").select("*").eq("escola_id", c.get("escola_id")).order("created_at", { ascending: false });
   return c.json(data || []);
 });
 app.post("/emprestimos", async c => {
   const body = await c.req.json();
-  await sb(c.env.SUPABASE_SECRET_KEY).from("emprestimos").insert(body);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("emprestimos").insert({ ...body, escola_id: c.get("escola_id") });
   return c.json({ ok: true });
 });
 app.put("/emprestimos/:id/devolver", async c => {
   const id = c.req.param("id");
   const hoje = new Date().toISOString().split("T")[0];
-  await sb(c.env.SUPABASE_SECRET_KEY).from("emprestimos").update({ devolvido: true, data_retorno: hoje }).eq("id", id);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("emprestimos").update({ devolvido: true, data_retorno: hoje }).eq("id", id).eq("escola_id", c.get("escola_id"));
   return c.json({ ok: true });
 });
 app.get("/alertas", async c => {
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("alertas").select("*").order("created_at", { ascending: false }).limit(50);
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("alertas").select("*").eq("escola_id", c.get("escola_id")).order("created_at", { ascending: false }).limit(50);
   return c.json(data || []);
 });
 app.post("/alertas", async c => {
   const body = await c.req.json();
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
-  await sb(c.env.SUPABASE_SECRET_KEY).from("alertas").insert({ id: genId(), ...body });
+  await sb(c.env.SUPABASE_SECRET_KEY).from("alertas").insert({ id: genId(), ...body, escola_id: c.get("escola_id") });
   return c.json({ ok: true });
 });
 app.put("/alertas/:id/resolver", async c => {
   const id = c.req.param("id");
-  await sb(c.env.SUPABASE_SECRET_KEY).from("alertas").update({ resolvido: true }).eq("id", id);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("alertas").update({ resolvido: true }).eq("id", id).eq("escola_id", c.get("escola_id"));
   return c.json({ ok: true });
 });
 
@@ -626,7 +626,7 @@ app.post("/mensalidades/gerar/:alunaId", async c => {
 
 app.get("/despesas", async c => {
   const mes = c.req.query("mes") || "";
-  let q = sb(c.env.SUPABASE_SECRET_KEY).from("despesas").select("*").order("data", { ascending: false });
+  let q = sb(c.env.SUPABASE_SECRET_KEY).from("despesas").select("*").eq("escola_id", c.get("escola_id")).order("data", { ascending: false });
   if (mes) q = q.eq("mes", mes);
   const { data, error } = await q;
   if (error) return c.json({ error: error.message }, 500);
@@ -636,7 +636,7 @@ app.get("/despesas", async c => {
 app.post("/despesas", async c => {
   const body = await c.req.json();
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").insert({ id: genId(), ...body });
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").insert({ id: genId(), ...body, escola_id: c.get("escola_id") });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -644,13 +644,13 @@ app.post("/despesas", async c => {
 app.put("/despesas/:id", async c => {
   const id = c.req.param("id");
   const body = await c.req.json();
-  await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").update(body).eq("id", id);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").update(body).eq("id", id).eq("escola_id", c.get("escola_id"));
   return c.json({ ok: true });
 });
 
 app.delete("/despesas/:id", async c => {
   const id = c.req.param("id");
-  await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").delete().eq("id", id);
+  await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").delete().eq("id", id).eq("escola_id", c.get("escola_id"));
   return c.json({ ok: true });
 });
 
