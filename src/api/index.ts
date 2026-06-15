@@ -227,14 +227,14 @@ app.post("/alunas/:id/restaurar", async c => {
 
 // ── TURMAS ────────────────────────────────────────────────────────────────────
 app.get("/turmas", async c => {
-  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").select("*").order("nome");
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").select("*").eq("escola_id", c.get("escola_id")).order("nome");
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data || []);
 });
 
 app.post("/turmas", async c => {
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").insert(body);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").insert({ ...body, escola_id: c.get("escola_id") });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -242,7 +242,7 @@ app.post("/turmas", async c => {
 app.put("/turmas/:id", async c => {
   const id = c.req.param("id");
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").update(body).eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").update(body).eq("id", id).eq("escola_id", c.get("escola_id"));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
