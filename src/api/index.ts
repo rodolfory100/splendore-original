@@ -256,7 +256,7 @@ app.get("/pagamentos", async c => {
 
 app.post("/pagamentos", async c => {
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert(body);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert({ ...body, escola_id: c.get("escola_id") });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -264,7 +264,7 @@ app.post("/pagamentos", async c => {
 app.put("/pagamentos/:id/pagar", async c => {
   const id = c.req.param("id");
   const { data, valor, forma } = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").update({ data, valor, forma }).eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").update({ data, valor, forma }).eq("id", id).eq("escola_id", c.get("escola_id"));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -272,7 +272,7 @@ app.put("/pagamentos/:id/desconto", async c => {
   const id = c.req.param("id");
   const { tipo, percentual, valorFixo, motivo } = await c.req.json();
   // Buscar valor atual
-  const { data: pag } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("valor").eq("id", id).single();
+  const { data: pag } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("valor").eq("id", id).eq("escola_id", c.get("escola_id")).single();
   if (!pag) return c.json({ error: "Pagamento não encontrado" }, 404);
   let novoValor = pag.valor;
   if (tipo === "desconto_pct") novoValor = pag.valor * (1 - percentual / 100);
@@ -282,13 +282,13 @@ app.put("/pagamentos/:id/desconto", async c => {
   else if (tipo === "isencao") novoValor = 0;
   novoValor = Math.max(0, Math.round(novoValor * 100) / 100);
   const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos")
-    .update({ valor: novoValor, observacao: motivo || tipo }).eq("id", id);
+    .update({ valor: novoValor, observacao: motivo || tipo }).eq("id", id).eq("escola_id", c.get("escola_id"));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true, novoValor });
 });
 app.delete("/pagamentos/:id", async c => {
   const id = c.req.param("id");
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").delete().eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").delete().eq("id", id).eq("escola_id", c.get("escola_id"));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -305,7 +305,7 @@ app.post("/contratos", async c => {
   const { contrato, parcelas } = await c.req.json();
   const { error: ce } = await sb(c.env.SUPABASE_SECRET_KEY).from("contratos").insert(contrato);
   if (ce) return c.json({ error: ce.message }, 500);
-  const { error: pe } = await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").insert(parcelas);
+  const { error: pe } = await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").insert(parcelas.map((x:any)=>({ ...x, escola_id: c.get("escola_id") })));
   if (pe) return c.json({ error: pe.message }, 500);
   return c.json({ ok: true });
 });
@@ -405,9 +405,9 @@ app.post("/contratos/gerar", async c => {
     const vencStr = mesStr + "-" + String(diaVencimento).padStart(2,"0");
     parcelas.push({ id: genId(), contrato_id: contratoId, aluna_id: alunaId, numero: i+1, mes: mesStr, valor_desconto: valorDesconto, valor_cheio: valorCheio, data_vencimento: vencStr, data_limite_desconto: vencStr, status: i===0?"pago":"em_aberto", data_pagamento: i===0?hoje.toISOString().split("T")[0]:null, valor_pago: i===0?valorDesconto:null, forma_pagamento: i===0?formaPagamento1:null });
   }
-  const { error: pe } = await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").insert(parcelas);
+  const { error: pe } = await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").insert(parcelas.map((x:any)=>({ ...x, escola_id: c.get("escola_id") })));
   if (pe) return c.json({ error: pe.message }, 500);
-  if (formaPagamento1) await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert({ id: genId(), aluna_id: alunaId, mes: mesInicio, data: hoje.toISOString().split("T")[0], valor: valorDesconto, forma: formaPagamento1, observacao: "1a parcela — cadastro" });
+  if (formaPagamento1) await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert({ id: genId(), aluna_id: alunaId, mes: mesInicio, data: hoje.toISOString().split("T")[0], valor: valorDesconto, forma: formaPagamento1, observacao: "1a parcela — cadastro", escola_id: c.get("escola_id") });
   return c.json({ ok: true, contratoId, totalParcelas: 12 });
 });
 
@@ -424,7 +424,7 @@ app.put("/parcelas/:id/pagar", async c => {
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
   const hoje = new Date().toISOString().split("T")[0];
   await sb(c.env.SUPABASE_SECRET_KEY).from("parcelas").update({ status: "pago", data_pagamento: hoje, valor_pago: valorPago, forma_pagamento: formaPagamento }).eq("id", id);
-  await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert({ id: genId(), aluna_id: alunaId, mes, data: hoje, valor: valorPago, forma: formaPagamento, observacao: "Parcela paga" });
+  await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert({ id: genId(), aluna_id: alunaId, mes, data: hoje, valor: valorPago, forma: formaPagamento, observacao: "Parcela paga", escola_id: c.get("escola_id") });
   return c.json({ ok: true });
 });
 
@@ -459,7 +459,7 @@ app.get("/mensalidades/:alunaId", async c => {
 app.post("/mensalidades", async c => {
   const body = await c.req.json();
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert({ id: genId(), ...body });
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert({ id: genId(), ...body, escola_id: c.get("escola_id") });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -468,21 +468,21 @@ app.put("/mensalidades/editar/:id", async c => {
   const id = c.req.param("id");
   const b = await c.req.json();
   const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
-  const { data: reg } = await sb_.from("pagamentos").select("id,data").eq("id", id).single();
+  const { data: reg } = await sb_.from("pagamentos").select("id,data").eq("id", id).eq("escola_id", c.get("escola_id")).single();
   if (!reg) return c.json({ error: "Mensalidade nao encontrada" }, 404);
   if (reg.data) return c.json({ error: "Mensalidade ja paga - nao pode ser editada" }, 400);
   const upd: any = {};
   if (b.valor != null) upd.valor = b.valor;
   if (b.observacao !== undefined) upd.observacao = b.observacao;
   if (b.vencimento !== undefined) upd.vencimento = b.vencimento;
-  const { error } = await sb_.from("pagamentos").update(upd).eq("id", id);
+  const { error } = await sb_.from("pagamentos").update(upd).eq("id", id).eq("escola_id", c.get("escola_id"));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 
 app.delete("/mensalidades/:id", async c => {
   const id = c.req.param("id");
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").delete().eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").delete().eq("id", id).eq("escola_id", c.get("escola_id"));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -614,9 +614,9 @@ app.post("/mensalidades/gerar/:alunaId", async c => {
   const { data: aluna } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("id", alunaId).single();
   if (!aluna) return c.json({ error: "Aluna não encontrada" }, 404);
   const meses = Array.from({length: 12}, (_, i) => `${ano}-${String(i+1).padStart(2,"0")}`);
-  const { data: existentes } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("mes").eq("aluna_id", alunaId);
+  const { data: existentes } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("mes").eq("aluna_id", alunaId).eq("escola_id", c.get("escola_id"));
   const existSet = new Set((existentes || []).map((p: any) => p.mes));
-  const novos = meses.filter(m => !existSet.has(m)).map(m => ({ id: genId(), aluna_id: alunaId, mes: m, data: null, valor: aluna.valor || 160, forma: null, observacao: "Gerado automaticamente", parcela_id: null }));
+  const novos = meses.filter(m => !existSet.has(m)).map(m => ({ id: genId(), aluna_id: alunaId, mes: m, data: null, valor: aluna.valor || 160, forma: null, observacao: "Gerado automaticamente", parcela_id: null, escola_id: c.get("escola_id") }));
   if (novos.length === 0) return c.json({ ok: true, gerados: 0 });
   const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert(novos);
   if (error) return c.json({ error: error.message }, 500);
@@ -721,16 +721,16 @@ app.post("/mensalidades/editar-lote", async c => {
   };
   let atualizados = 0, pulados = 0;
   if (b.mesIds?.length) {
-    const { data: regs } = await sb_.from("pagamentos").select("id,valor,data").in("id", b.mesIds).eq("aluna_id", b.alunaId);
+    const { data: regs } = await sb_.from("pagamentos").select("id,valor,data").in("id", b.mesIds).eq("aluna_id", b.alunaId).eq("escola_id", c.get("escola_id"));
     for (const r of (regs || [])) {
       if (r.data) { pulados++; continue; }
-      const { error } = await sb_.from("pagamentos").update({ valor: calcValor(r.valor || aluna.valor), observacao: b.motivo || null }).eq("id", r.id);
+      const { error } = await sb_.from("pagamentos").update({ valor: calcValor(r.valor || aluna.valor), observacao: b.motivo || null }).eq("id", r.id).eq("escola_id", c.get("escola_id"));
       if (!error) atualizados++;
     }
   }
   if (b.meses?.length) {
     const genId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-    const rows = b.meses.map((mes: string) => ({ id: genId(), aluna_id: b.alunaId, mes, valor: calcValor(aluna.valor), data: null, observacao: b.motivo || null }));
+    const rows = b.meses.map((mes: string) => ({ id: genId(), aluna_id: b.alunaId, mes, valor: calcValor(aluna.valor), data: null, observacao: b.motivo || null, escola_id: c.get("escola_id") }));
     const { error } = await sb_.from("pagamentos").insert(rows);
     if (!error) atualizados += rows.length;
   }
@@ -867,6 +867,7 @@ app.post("/fila/processar", async c => {
           // Registra pagamento
           await sb_.from("pagamentos").insert({
             id: genId(),
+            escola_id: c.get("escola_id"),
             aluna_id: cobranca.aluna_id,
             mes: new Date().toISOString().slice(0,7),
             data: agora.split("T")[0],
@@ -1024,6 +1025,7 @@ async function conciliarPagamento(sb_: any, dados: any) {
 
     await sb_.from("pagamentos").insert({
       id: genId(),
+      escola_id: c.get("escola_id"),
       aluna_id: parcela.aluna_id,
       mes: parcela.mes,
       data: dados.dataPagamento,
