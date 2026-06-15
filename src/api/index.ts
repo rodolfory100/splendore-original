@@ -1199,12 +1199,13 @@ app.get("/motor/saude", async c => {
   const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
 
   // Saúde geral da fila
-  const { data: saude } = await sb_.from("saude_motor").select("*").single();
+  const { data: saude } = await sb_.from("saude_motor").select("*").eq("escola_id", c.get("escola_id")).maybeSingle();
 
   // Alertas ativos
   const { data: alertas } = await sb_
     .from("alertas_motor")
     .select("*")
+    .eq("escola_id", c.get("escola_id"))
     .eq("resolvido", false)
     .order("created_at", { ascending: false })
     .limit(10);
@@ -1214,6 +1215,7 @@ app.get("/motor/saude", async c => {
   const { data: metricas } = await sb_
     .from("metricas_motor")
     .select("*")
+    .eq("escola_id", c.get("escola_id"))
     .gte("data", ontemStr)
     .order("data")
     .order("hora");
@@ -1221,7 +1223,8 @@ app.get("/motor/saude", async c => {
   // Cache hit rate
   const { data: cacheStats } = await sb_
     .from("cache_perfil_risco")
-    .select("aluna_id, nivel, expires_at");
+    .select("aluna_id, nivel, expires_at")
+    .eq("escola_id", c.get("escola_id"));
 
   const cacheAtivo = (cacheStats || []).filter(
     (c: any) => new Date(c.expires_at) > new Date()
@@ -1274,11 +1277,11 @@ app.get("/motor/risco/:alunaId", async c => {
   }
 
   // Cache miss — calcula perfil
-  const { data: aluna } = await sb_.from("alunas").select("*").eq("id", alunaId).single();
+  const { data: aluna } = await sb_.from("alunas").select("*").eq("id", alunaId).eq("escola_id", c.get("escola_id")).single();
   if (!aluna) return c.json({ error: "Aluna não encontrada" }, 404);
 
   const { data: pagamentos } = await sb_
-    .from("pagamentos").select("mes,valor,data").eq("aluna_id", alunaId);
+    .from("pagamentos").select("mes,valor,data").eq("aluna_id", alunaId).eq("escola_id", c.get("escola_id"));
 
   const hoje = new Date();
   let score = 0;
@@ -1391,7 +1394,7 @@ async function analisarSentimento(sb_: any, alunaId: string): Promise<any> {
 
 async function verificarSaudeMotor(sb_: any): Promise<any> {
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
-  const { data: saude } = await sb_.from("saude_motor").select("*").single();
+  const { data: saude } = await sb_.from("saude_motor").select("*").eq("escola_id", c.get("escola_id")).maybeSingle();
   if (!saude) return null;
   const taxa = saude.taxa_sucesso_pct || 100;
   const falhasConsec = saude.total_falhou || 0;
@@ -1409,12 +1412,12 @@ app.get("/observabilidade/sentimento/:alunaId", async c => {
 });
 
 app.get("/observabilidade/logs-ia", async c => {
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("logs_ia_agente").select("id,ferramenta_escolhida,status_final,tempo_resposta_ms,custo_estimado,created_at").order("created_at", { ascending: false }).limit(20);
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("logs_ia_agente").select("id,ferramenta_escolhida,status_final,tempo_resposta_ms,custo_estimado,created_at").eq("escola_id", c.get("escola_id")).order("created_at", { ascending: false }).limit(20);
   return c.json(data || []);
 });
 
 app.get("/observabilidade/logs-performance", async c => {
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("logs_performance").select("endpoint,metodo,tempo_ms,status_code,erro,created_at").order("created_at", { ascending: false }).limit(50);
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("logs_performance").select("endpoint,metodo,tempo_ms,status_code,erro,created_at").eq("escola_id", c.get("escola_id")).order("created_at", { ascending: false }).limit(50);
   return c.json(data || []);
 });
 
@@ -1424,14 +1427,14 @@ app.post("/observabilidade/verificar-saude", async c => {
 });
 
 app.get("/observabilidade/cobrancas-bloqueadas", async c => {
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("sentimento_alunas").select("*").eq("bloquear_cobranca", true).gt("expires_at", new Date().toISOString()).order("score");
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("sentimento_alunas").select("*").eq("escola_id", c.get("escola_id")).eq("bloquear_cobranca", true).gt("expires_at", new Date().toISOString()).order("score");
   return c.json(data || []);
 });
 
 app.get("/observabilidade/dashboard", async c => {
   const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
   const [saude, logsIA, bloqueadas, alertasSaude] = await Promise.all([
-    sb_.from("saude_motor").select("*").single(),
+    sb_.from("saude_motor").select("*").eq("escola_id", c.get("escola_id")).maybeSingle(),
     sb_.from("logs_ia_agente").select("status_final,tempo_resposta_ms,custo_estimado").order("created_at", { ascending: false }).limit(100),
     sb_.from("sentimento_alunas").select("aluna_id,score,classificacao,bloquear_cobranca").eq("bloquear_cobranca", true).gt("expires_at", new Date().toISOString()),
     sb_.from("alertas_saude").select("*").eq("resolvido", false).order("created_at", { ascending: false }).limit(5)
