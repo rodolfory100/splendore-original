@@ -249,7 +249,7 @@ app.put("/turmas/:id", async c => {
 
 // ── PAGAMENTOS ────────────────────────────────────────────────────────────────
 app.get("/pagamentos", async c => {
-  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").order("created_at", { ascending: false });
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").eq("escola_id", c.get("escola_id")).order("created_at", { ascending: false });
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data || []);
 });
@@ -321,8 +321,9 @@ app.put("/parcelas/:id", async c => {
 app.get("/inadimplentes", async c => {
   const hoje = new Date();
   const mes = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
-  const { data: alunas } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("ativo", true).eq("bolsista", false);
-  const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("aluna_id,mes");
+  const escolaId = c.get("escola_id");
+  const { data: alunas } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("escola_id", escolaId).eq("ativo", true).eq("bolsista", false);
+  const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("aluna_id,mes").eq("escola_id", escolaId);
   const pagSet = new Set((pags||[]).map((p:any) => `${p.aluna_id}:${p.mes}`));
   const inad = (alunas||[]).filter((a:any) => !pagSet.has(`${a.id}:${mes}`));
   return c.json(inad.map((a:any) => ({ ...a, valor: a.valor || 160, modalidade: a.modalidade || "Ballet" })));
@@ -657,8 +658,9 @@ app.delete("/despesas/:id", async c => {
 app.get("/financeiro/dre", async c => {
   const mes = c.req.query("mes") || new Date().toISOString().slice(0,7);
   const ano = mes.slice(0,4);
-  const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").gte("mes", ano + "-01").lte("mes", ano + "-12");
-  const { data: desps } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").select("*").gte("mes", ano + "-01").lte("mes", ano + "-12");
+  const escolaId = c.get("escola_id");
+  const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").eq("escola_id", escolaId).gte("mes", ano + "-01").lte("mes", ano + "-12");
+  const { data: desps } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").select("*").eq("escola_id", escolaId).gte("mes", ano + "-01").lte("mes", ano + "-12");
   const meses = ["01","02","03","04","05","06","07","08","09","10","11","12"];
   const dre = meses.map(m => {
     const mesStr = ano + "-" + m;
@@ -673,8 +675,9 @@ app.get("/financeiro/dre", async c => {
 
 app.get("/financeiro/fluxo", async c => {
   const ano = new Date().getFullYear().toString();
-  const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("mes,valor").gte("mes", ano + "-01").lte("mes", ano + "-12");
-  const { data: desps } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").select("mes,valor").gte("mes", ano + "-01").lte("mes", ano + "-12");
+  const escolaId = c.get("escola_id");
+  const { data: pags } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("mes,valor").eq("escola_id", escolaId).gte("mes", ano + "-01").lte("mes", ano + "-12");
+  const { data: desps } = await sb(c.env.SUPABASE_SECRET_KEY).from("despesas").select("mes,valor").eq("escola_id", escolaId).gte("mes", ano + "-01").lte("mes", ano + "-12");
   const meses = ["01","02","03","04","05","06","07","08","09","10","11","12"];
   const fluxo = meses.map(m => {
     const mesStr = ano + "-" + m;
