@@ -167,7 +167,8 @@ const mapAluna = (b: any) => ({
 
 app.post("/alunas", async c => {
   const body = await c.req.json();
-  const alunaData = mapAluna(body);
+  const escolaId = c.get("escola_id");
+  const alunaData = { ...mapAluna(body), escola_id: escolaId };
   const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").insert(alunaData);
   if (error) return c.json({ error: error.message }, 500);
   // Gerar plano anual completo — 12 meses com valor e vencimento corretos
@@ -195,6 +196,7 @@ app.post("/alunas", async c => {
       valor: valorMensal,
       forma: null,
       observacao: "Plano anual gerado automaticamente",
+      escola_id: escolaId,
     };
   });
   await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert(mensalidades);
@@ -204,21 +206,21 @@ app.post("/alunas", async c => {
 app.put("/alunas/:id", async c => {
   const id = c.req.param("id");
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").update(mapAluna(body)).eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").update(mapAluna(body)).eq("id", id).eq("escola_id", c.get("escola_id"));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 
 app.delete("/alunas/:id", async c => {
   const id = c.req.param("id");
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").update({ ativo: false, suspenso: true }).eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").update({ ativo: false, suspenso: true }).eq("id", id).eq("escola_id", c.get("escola_id"));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 
 app.post("/alunas/:id/restaurar", async c => {
   const id = c.req.param("id");
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").update({ ativo: true, suspenso: false }).eq("id", id);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").update({ ativo: true, suspenso: false }).eq("id", id).eq("escola_id", c.get("escola_id"));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
