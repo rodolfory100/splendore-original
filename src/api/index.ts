@@ -1371,17 +1371,22 @@ const LogService = {
   async logIA(sb_: any, dados: any): Promise<void> {
     const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
     const custo = ((dados.tokens_input || 0) * 0.000003) + ((dados.tokens_output || 0) * 0.000015);
-    sb_.from("logs_ia_agente").insert({ id: genId(), tenant_id: "ballet-splendore", ...dados, custo_estimado: custo }).then(() => {}).catch((e: any) => console.error("[LogIA]", e.message));
+    // C3: tenant real do contexto. tenant_id mantido p/ compat; escola_id usado pelas leituras.
+    const eid = dados.escola_id || null;
+    sb_.from("logs_ia_agente").insert({ id: genId(), tenant_id: eid || "desconhecido", escola_id: eid, ...dados, custo_estimado: custo }).then(() => {}).catch((e: any) => console.error("[LogIA]", e.message));
   },
   async logPerformance(sb_: any, dados: any): Promise<void> {
     const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
     if (dados.tempo_ms < 500 && !dados.erro) return;
-    sb_.from("logs_performance").insert({ id: genId(), tenant_id: "ballet-splendore", ...dados }).then(() => {}).catch((e: any) => console.error("[LogPerf]", e.message));
+    // C3: tenant real do contexto. tenant_id mantido p/ compat; escola_id usado pelas leituras.
+    const eid = dados.escola_id || null;
+    sb_.from("logs_performance").insert({ id: genId(), tenant_id: eid || "desconhecido", escola_id: eid, ...dados }).then(() => {}).catch((e: any) => console.error("[LogPerf]", e.message));
   },
-  async logSeguranca(sb_: any, tipo: string, recurso: string, payload: any): Promise<void> {
+  async logSeguranca(sb_: any, tipo: string, recurso: string, payload: any, escolaId?: string): Promise<void> {
     const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
     console.error("[SECURITY] " + tipo + " | " + recurso);
-    sb_.from("logs_seguranca").insert({ id: genId(), tipo, severidade: "critical", recurso_acessado: recurso, payload, bloqueado: true }).then(() => {}).catch((e: any) => console.error("[LogSec]", e.message));
+    // C3: escola_id opcional (eventos de seguranca podem ocorrer sem tenant autenticado)
+    sb_.from("logs_seguranca").insert({ id: genId(), tipo, severidade: "critical", recurso_acessado: recurso, payload, bloqueado: true, escola_id: escolaId || null }).then(() => {}).catch((e: any) => console.error("[LogSec]", e.message));
   }
 };
 
@@ -1393,10 +1398,13 @@ app.use("*", async (c, next) => {
   try {
     await next();
     const tempo_ms = Date.now() - inicio;
-    LogService.logPerformance(sb(c.env.SUPABASE_SECRET_KEY), { endpoint, metodo, tempo_ms, status_code: c.res.status, ip });
+    // C3: escola_id do contexto (setado pelo middleware de auth, se autenticado)
+    const escola_id = (() => { try { return c.get("escola_id"); } catch { return null; } })();
+    LogService.logPerformance(sb(c.env.SUPABASE_SECRET_KEY), { endpoint, metodo, tempo_ms, status_code: c.res.status, ip, escola_id });
   } catch (erro: any) {
     const tempo_ms = Date.now() - inicio;
-    LogService.logPerformance(sb(c.env.SUPABASE_SECRET_KEY), { endpoint, metodo, tempo_ms, status_code: 500, erro: erro.message, stack_trace: (erro.stack || "").slice(0, 500), ip });
+    const escola_id = (() => { try { return c.get("escola_id"); } catch { return null; } })();
+    LogService.logPerformance(sb(c.env.SUPABASE_SECRET_KEY), { endpoint, metodo, tempo_ms, status_code: 500, erro: erro.message, stack_trace: (erro.stack || "").slice(0, 500), ip, escola_id });
     return c.json({ error: "Erro interno" }, 500);
   }
 });
