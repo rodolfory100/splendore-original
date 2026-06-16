@@ -867,7 +867,7 @@ app.post("/fila/processar", async c => {
           // Registra pagamento
           await sb_.from("pagamentos").insert({
             id: genId(),
-            escola_id: c.get("escola_id"),
+            escola_id: parcela.aluna_id ? (parcela.alunas?.escola_id || null) : null,
             aluna_id: cobranca.aluna_id,
             mes: new Date().toISOString().slice(0,7),
             data: agora.split("T")[0],
@@ -987,13 +987,13 @@ app.post("/webhook/:gateway", async c => {
 });
 
 // Conciliação bancária por IA
-async function conciliarPagamento(sb_: any, dados: any) {
+async function conciliarPagamento(sb_: any, dados: any & { escolaId?: string }) {
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
 
   // Busca parcelas em aberto próximas ao valor
   const { data: parcelas } = await sb_
     .from("parcelas")
-    .select("*, alunas(nome, cpf_responsavel)")
+    .select("*, alunas(nome, cpf_responsavel, escola_id)")
     .eq("status", "em_aberto")
     .gte("valor_desconto", dados.valorPago * 0.9)
     .lte("valor_desconto", dados.valorPago * 1.1)
@@ -1025,7 +1025,7 @@ async function conciliarPagamento(sb_: any, dados: any) {
 
     await sb_.from("pagamentos").insert({
       id: genId(),
-      escola_id: c.get("escola_id"),
+      escola_id: parcela.aluna_id ? (parcela.alunas?.escola_id || null) : null,
       aluna_id: parcela.aluna_id,
       mes: parcela.mes,
       data: dados.dataPagamento,
