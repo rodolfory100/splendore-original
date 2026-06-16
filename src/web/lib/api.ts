@@ -29,9 +29,9 @@ export async function req<T>(path: string, opts?: RequestInit): Promise<T> {
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
-export const authLogin = (senha: string) =>
+export const authLogin = (senha: string, email?: string) =>
   req<{ ok: boolean; token?: string; error?: string }>('/auth/login', {
-    method: 'POST', body: JSON.stringify({ senha }),
+    method: 'POST', body: JSON.stringify(email ? { email, senha } : { senha }),
   });
 
 export const portalAuth = (cpf: string) =>

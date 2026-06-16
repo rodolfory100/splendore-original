@@ -2,6 +2,7 @@ import { useState } from "react";
 import { authLogin } from "../lib/api";
 
 export function LoginPage({ onLogin }: { onLogin: (t: string) => void }) {
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
@@ -11,7 +12,7 @@ export function LoginPage({ onLogin }: { onLogin: (t: string) => void }) {
     if (!senha) return;
     setLoading(true); setErro("");
     try {
-      const res = await authLogin(senha);
+      const res = await authLogin(senha, email || undefined);
       if (res.ok && res.token) { localStorage.setItem("spl_token", res.token); onLogin(res.token); }
       else setErro("Senha incorreta. Tente novamente.");
     } catch (e: any) { setErro("Erro de conexão. Tente novamente."); }
@@ -65,6 +66,18 @@ export function LoginPage({ onLogin }: { onLogin: (t: string) => void }) {
           <h2 style={{ fontSize: 24, fontWeight: 800, color: "#0F172A", marginBottom: 6 }}>Entrar no sistema</h2>
           <p style={{ fontSize: 13, color: "#64748B", marginBottom: 32 }}>Área administrativa — acesso restrito</p>
 
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 8, letterSpacing: 0.3 }}>E-mail da escola</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleLogin()}
+              placeholder="escola@exemplo.com"
+              autoFocus
+            />
+          </div>
+
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 8, letterSpacing: 0.3 }}>Senha de acesso</label>
             <div style={{ position: "relative" }}>
@@ -74,7 +87,6 @@ export function LoginPage({ onLogin }: { onLogin: (t: string) => void }) {
                 onChange={e => setSenha(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleLogin()}
                 placeholder="••••••••"
-                autoFocus
                 style={{ paddingRight: 44 }}
               />
               <button

@@ -103,14 +103,21 @@ app.use("*", async (c, next) => {
 });
 
 app.post("/login", async c => {
-  const { senha } = await c.req.json();
-  // Multi-escola: busca todas as configs e identifica pela senha
-  const { data: configs } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id");
+  const { email, senha } = await c.req.json();
+  if (!senha) return c.json({ error: "Senha obrigatória" }, 400);
   let match = null;
-  for (const cfg of (configs || [])) {
-    if (await verificarSenha(senha, cfg.senha)) { match = cfg; break; }
+  if (email) {
+    // C1 FIX: identifica escola pelo EMAIL (único), valida senha só daquela escola
+    const { data: cfg } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id").eq("email", email.toLowerCase().trim()).single();
+    if (cfg && await verificarSenha(senha, cfg.senha)) match = cfg;
+  } else {
+    // Retrocompat temporária: login só por senha (Ballet legado). Remover após migração total.
+    const { data: configs } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id");
+    for (const cfg of (configs || [])) {
+      if (await verificarSenha(senha, cfg.senha)) { match = cfg; break; }
+    }
   }
-  if (!match) return c.json({ error: "Senha incorreta" }, 401);
+  if (!match) return c.json({ error: "Email ou senha incorretos" }, 401);
   const token = await signToken({ escola: match.escola, admin: match.nome_admin, role: "admin", escola_id: match.escola_id || "splendore001" }, c.env.JWT_SECRET);
   return c.json({ token, escola: match.escola, admin: match.nome_admin });
 });
@@ -384,14 +391,21 @@ app.get("/cobrancas", async c => {
 });
 
 app.post("/auth/login", async c => {
-  const { senha } = await c.req.json();
-  // Multi-escola: busca todas as configs e identifica pela senha
-  const { data: configs } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id");
+  const { email, senha } = await c.req.json();
+  if (!senha) return c.json({ error: "Senha obrigatória" }, 400);
   let match = null;
-  for (const cfg of (configs || [])) {
-    if (await verificarSenha(senha, cfg.senha)) { match = cfg; break; }
+  if (email) {
+    // C1 FIX: identifica escola pelo EMAIL (único), valida senha só daquela escola
+    const { data: cfg } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id").eq("email", email.toLowerCase().trim()).single();
+    if (cfg && await verificarSenha(senha, cfg.senha)) match = cfg;
+  } else {
+    // Retrocompat temporária: login só por senha (Ballet legado). Remover após migração total.
+    const { data: configs } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id");
+    for (const cfg of (configs || [])) {
+      if (await verificarSenha(senha, cfg.senha)) { match = cfg; break; }
+    }
   }
-  if (!match) return c.json({ error: "Senha incorreta" }, 401);
+  if (!match) return c.json({ error: "Email ou senha incorretos" }, 401);
   const token = await signToken({ escola: match.escola, admin: match.nome_admin, role: "admin", escola_id: match.escola_id || "splendore001" }, c.env.JWT_SECRET);
   return c.json({ ok: true, token, escola: match.escola, admin: match.nome_admin });
 });
@@ -1511,10 +1525,10 @@ app.post("/saas/cadastrar", async c => {
     email, whatsapp, cidade, estado, plano: "trial"
   });
 
-  // Criar config padrão da escola — senha com hash PBKDF2
+  // Criar config padrão da escola — senha com hash PBKDF2 + email para login
   const senhaHash = await hashSenha(senha);
   await sb_.from("config").insert({
-    id: escolaId, escola: nome, senha: senhaHash,
+    id: escolaId, escola: nome, senha: senhaHash, email: email.toLowerCase().trim(),
     escola_id: escolaId, nome_admin: "Diretor(a)"
   });
 
