@@ -1511,9 +1511,10 @@ app.post("/saas/cadastrar", async c => {
     email, whatsapp, cidade, estado, plano: "trial"
   });
 
-  // Criar config padrão da escola
+  // Criar config padrão da escola — senha com hash PBKDF2
+  const senhaHash = await hashSenha(senha);
   await sb_.from("config").insert({
-    id: escolaId, escola: nome, senha,
+    id: escolaId, escola: nome, senha: senhaHash,
     escola_id: escolaId, nome_admin: "Diretor(a)"
   });
 
