@@ -347,6 +347,7 @@ app.get("/renovacoes", async c => {
   const { data: alunas } = await sb(c.env.SUPABASE_SECRET_KEY)
     .from("alunas")
     .select("id,nome,modalidade,whatsapp,responsavel,valor,data_inicio_contrato,data_fim_contrato,contrato_renovacao_automatica")
+    .eq("escola_id", c.get("escola_id"))
     .eq("ativo", true)
     .not("data_fim_contrato", "is", null)
     .lte("data_fim_contrato", em60.toISOString().split("T")[0])
@@ -374,7 +375,7 @@ app.get("/renovacoes", async c => {
 });
 
 app.get("/arquivo-morto", async c => {
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("ativo", false);
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("escola_id", c.get("escola_id")).eq("ativo", false);
   return c.json(data || []);
 });
 
@@ -766,7 +767,7 @@ app.post("/portal/enviar-comprovante", async c => { return c.json({ ok: true });
 app.get("/relatorios/financeiro", async c => { return c.json({}); });
 app.get("/responsaveis", async c => { return c.json([]); });
 app.get("/sem-rematricula", async c => {
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("suspenso", true);
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("escola_id", c.get("escola_id")).eq("suspenso", true);
   return c.json(data || []);
 });
 
@@ -1125,12 +1126,14 @@ app.post("/fila/enfileirar-lote", async c => {
   const { data: alunas } = await sb_
     .from("alunas")
     .select("id, valor")
+    .eq("escola_id", c.get("escola_id"))
     .eq("ativo", true)
     .eq("bolsista", false);
 
   const { data: pagos } = await sb_
     .from("pagamentos")
     .select("aluna_id")
+    .eq("escola_id", c.get("escola_id"))
     .eq("mes", mesAlvo);
 
   const pagosSet = new Set((pagos||[]).map((p:any) => p.aluna_id));
