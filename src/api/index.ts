@@ -104,10 +104,15 @@ app.use("*", async (c, next) => {
 
 app.post("/login", async c => {
   const { senha } = await c.req.json();
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id").eq("id","main").single();
-  if (!data || !(await verificarSenha(senha, data.senha))) return c.json({ error: "Senha incorreta" }, 401);
-  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin", escola_id: data.escola_id || "splendore001" }, c.env.JWT_SECRET);
-  return c.json({ token, escola: data.escola, admin: data.nome_admin });
+  // Multi-escola: busca todas as configs e identifica pela senha
+  const { data: configs } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id");
+  let match = null;
+  for (const cfg of (configs || [])) {
+    if (await verificarSenha(senha, cfg.senha)) { match = cfg; break; }
+  }
+  if (!match) return c.json({ error: "Senha incorreta" }, 401);
+  const token = await signToken({ escola: match.escola, admin: match.nome_admin, role: "admin", escola_id: match.escola_id || "splendore001" }, c.env.JWT_SECRET);
+  return c.json({ token, escola: match.escola, admin: match.nome_admin });
 });
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
@@ -380,10 +385,15 @@ app.get("/cobrancas", async c => {
 
 app.post("/auth/login", async c => {
   const { senha } = await c.req.json();
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id").eq("id","main").single();
-  if (!data || !(await verificarSenha(senha, data.senha))) return c.json({ error: "Senha incorreta" }, 401);
-  const token = await signToken({ escola: data.escola, admin: data.nome_admin, role: "admin", escola_id: data.escola_id || "splendore001" }, c.env.JWT_SECRET);
-  return c.json({ ok: true, token, escola: data.escola, admin: data.nome_admin });
+  // Multi-escola: busca todas as configs e identifica pela senha
+  const { data: configs } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id");
+  let match = null;
+  for (const cfg of (configs || [])) {
+    if (await verificarSenha(senha, cfg.senha)) { match = cfg; break; }
+  }
+  if (!match) return c.json({ error: "Senha incorreta" }, 401);
+  const token = await signToken({ escola: match.escola, admin: match.nome_admin, role: "admin", escola_id: match.escola_id || "splendore001" }, c.env.JWT_SECRET);
+  return c.json({ ok: true, token, escola: match.escola, admin: match.nome_admin });
 });
 
 
