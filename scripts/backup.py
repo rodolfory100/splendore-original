@@ -9,6 +9,26 @@ TABELAS = ["escolas","config","alunas","pagamentos","turmas","despesas",
            "parcelas","contratos","conciliacao","webhooks_recebidos",
            "logs_seguranca","logs_performance","logs_ia_agente"]
 
+# A7/Segurança: campos NUNCA exportados no backup (credenciais/segredos).
+# Allowlist negativa explícita por tabela. Restore não precisa destes campos:
+# senha pode ser redefinida, secrets do Efí reconfigurados.
+CAMPOS_PROIBIDOS = {
+    "config": ["senha", "efi_client_secret", "efi_client_id"],
+}
+
+def sanitizar(tabela, registros):
+    """Remove campos proibidos (credenciais) antes de salvar no backup."""
+    proibidos = CAMPOS_PROIBIDOS.get(tabela, [])
+    if not proibidos:
+        return registros, 0
+    removidos = 0
+    for r in registros:
+        for campo in proibidos:
+            if campo in r:
+                del r[campo]
+                removidos += 1
+    return registros, removidos
+
 ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 backup_dir = f"/workspaces/splendore-original/backups/{ts}"
 os.makedirs(backup_dir, exist_ok=True)
@@ -39,6 +59,9 @@ total = 0
 for t in TABELAS:
     try:
         dados = fetch_all(t)
+        dados, n_removidos = sanitizar(t, dados)
+        if n_removidos > 0:
+            print(f"    🔒 {n_removidos} campos de credencial removidos de {t}")
         with open(f"{backup_dir}/{t}.json", "w") as f:
             json.dump(dados, f, ensure_ascii=False, indent=2)
         n = len(dados)

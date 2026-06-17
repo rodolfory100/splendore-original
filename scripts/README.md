@@ -23,3 +23,9 @@ Uso: `python3 scripts/teste_restore.py`
   (estrutura + dados), usar pg_dump ou o backup nativo do Supabase.
 - Lição aprendida: a paginação de 1000 linhas escondia 1330 pagamentos
   no primeiro backup. SEMPRE verificar o manifesto contra contagens reais.
+
+## Sanitização de credenciais (ADR-002)
+O backup REMOVE automaticamente campos de credencial da tabela config
+(senha, efi_client_secret, efi_client_id) via CAMPOS_PROIBIDOS. Ver
+docs/adr/002-backup-sem-credenciais.md. Ao adicionar nova credencial,
+incluí-la na lista.
