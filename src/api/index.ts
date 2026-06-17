@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createClient } from "@supabase/supabase-js";
+import { loginSchema, cadastroSchema, validar } from "./schemas";
 
 const SUPABASE_URL = "https://orovbbxhzizbpphggqxa.supabase.co";
 
@@ -103,8 +104,10 @@ app.use("*", async (c, next) => {
 });
 
 app.post("/login", async c => {
-  const { email, senha } = await c.req.json();
-  if (!senha) return c.json({ error: "Senha obrigatória" }, 400);
+  const _b = await c.req.json().catch(() => ({}));
+  const _v = validar(loginSchema, _b);
+  if (!_v.ok) return c.json({ error: _v.erro }, 400);
+  const { email, senha } = _v.data;
   let match = null;
   if (email) {
     // C1 FIX: identifica escola pelo EMAIL (único), valida senha só daquela escola
@@ -392,8 +395,10 @@ app.get("/cobrancas", async c => {
 });
 
 app.post("/auth/login", async c => {
-  const { email, senha } = await c.req.json();
-  if (!senha) return c.json({ error: "Senha obrigatória" }, 400);
+  const _b = await c.req.json().catch(() => ({}));
+  const _v = validar(loginSchema, _b);
+  if (!_v.ok) return c.json({ error: _v.erro }, 400);
+  const { email, senha } = _v.data;
   let match = null;
   if (email) {
     // C1 FIX: identifica escola pelo EMAIL (único), valida senha só daquela escola
@@ -1519,8 +1524,10 @@ app.post("/saas/cadastrar", async c => {
     if (c.env.SAAS_ATIVO !== "true") {
       return c.json({ ok: false, error: "Cadastro de novas escolas desativado. Multi-tenancy nao implementado." }, 403);
     }
-  const { nome, email, whatsapp, cidade, estado, senha } = await c.req.json();
-  if (!nome || !email || !senha) return c.json({ error: "nome, email e senha obrigatórios" }, 400);
+  const _bc = await c.req.json().catch(() => ({}));
+  const _vc = validar(cadastroSchema, _bc);
+  if (!_vc.ok) return c.json({ error: _vc.erro }, 400);
+  const { nome, email, whatsapp, cidade, estado, senha } = _vc.data;
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
   const slug = nome.toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-").slice(0,30);
   const escolaId = genId();
