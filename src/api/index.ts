@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createClient } from "@supabase/supabase-js";
-import { loginSchema, cadastroSchema, validar } from "./schemas";
+import { loginSchema, cadastroSchema, anonimizarSchema, validar } from "./schemas";
 
 const SUPABASE_URL = "https://orovbbxhzizbpphggqxa.supabase.co";
 
@@ -1393,6 +1393,64 @@ app.delete("/motor/cache/limpar", async c => {
 // ═══════════════════════════════════════════════════════════════
 
 // CAMADA DE OBSERVABILIDADE
+// ── A7/LGPD: Anonimização (direito ao esquecimento, LGPD art. 18) ──
+// Anonimiza dados pessoais da aluna mantendo registro financeiro (retenção legal).
+app.post("/lgpd/anonimizar/:alunaId", async c => {
+  const escolaId = c.get("escola_id");
+  const alunaId = c.req.param("alunaId");
+
+  // Validação do motivo (rastreabilidade)
+  const _b = await c.req.json().catch(() => ({}));
+  const _v = validar(anonimizarSchema, _b);
+  if (!_v.ok) return c.json({ error: _v.erro }, 400);
+  const { motivo } = _v.data;
+
+  // 1. Confirma que a aluna existe E pertence à escola do token (isolamento C2)
+  const { data: aluna } = await sb(c.env.SUPABASE_SECRET_KEY)
+    .from("alunas").select("id,nome,anonimizado_em")
+    .eq("id", alunaId).eq("escola_id", escolaId).single();
+  if (!aluna) return c.json({ error: "Aluna não encontrada nesta escola" }, 404);
+
+  // 2. Idempotência: já anonimizada → não reprocessa
+  if (aluna.anonimizado_em) {
+    return c.json({ ok: true, ja_anonimizada: true, anonimizado_em: aluna.anonimizado_em });
+  }
+
+  // 3. Anonimiza campos pessoais (mantém id, escola_id, valores, datas, status)
+  const agora = new Date().toISOString();
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY)
+    .from("alunas")
+    .update({
+      nome: "[ANONIMIZADO]",
+      responsavel: "[ANONIMIZADO]",
+      cpf_responsavel: null,
+      cpf_responsavel2: null,
+      email: null,
+      whatsapp: null,
+      nascimento: null,
+      observacao: null,
+      anonimizado_em: agora,
+      motivo_anonimizacao: motivo,
+    })
+    .eq("id", alunaId).eq("escola_id", escolaId);
+  if (error) return c.json({ error: error.message }, 500);
+
+  // 4. Registra a anonimização (auditoria do cumprimento LGPD)
+  LogService.logSeguranca(sb(c.env.SUPABASE_SECRET_KEY),
+    "lgpd_anonimizacao", "alunas/" + alunaId,
+    { motivo, escola_id: escolaId }, escolaId);
+
+  // 5. Retorna confirmação. Pagamentos NÃO são tocados (retenção fiscal 5 anos).
+  return c.json({
+    ok: true,
+    anonimizada: alunaId,
+    anonimizado_em: agora,
+    campos_anonimizados: ["nome","responsavel","cpf_responsavel","cpf_responsavel2","email","whatsapp","nascimento","observacao"],
+    mantidos: ["id","escola_id","valores","datas","status","pagamentos (retencao legal)"],
+    motivo,
+  });
+});
+
 const LogService = {
   async logIA(sb_: any, dados: any): Promise<void> {
     const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);

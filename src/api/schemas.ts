@@ -39,6 +39,12 @@ export const pagamentoSchema = z.object({
   forma: z.string().max(50).optional().nullable(),
 }).passthrough();
 
+
+// ── LGPD: anonimização (direito ao esquecimento) ──
+export const anonimizarSchema = z.object({
+  motivo: z.string().min(5, "Motivo obrigatório (mín. 5 caracteres)").max(500),
+});
+
 // Helper: valida e retorna {ok, data} ou {ok:false, erro}
 export function validar<T>(schema: z.ZodType<T>, body: unknown):
   { ok: true; data: T } | { ok: false; erro: string } {
