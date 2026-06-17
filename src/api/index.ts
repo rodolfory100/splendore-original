@@ -10,6 +10,19 @@ const app = new Hono<{ Bindings: Bindings }>().basePath("api");
 
 const sb = (key: string) => createClient(SUPABASE_URL, key);
 
+// A3: Rate limiting por IP via KV. Retorna true se DENTRO do limite, false se excedeu.
+async function rateLimit(kv: KVNamespace, chave: string, max: number, janelaSeg: number): Promise<boolean> {
+  try {
+    const atual = await kv.get(chave);
+    const n = atual ? parseInt(atual, 10) : 0;
+    if (n >= max) return false;
+    await kv.put(chave, String(n + 1), { expirationTtl: janelaSeg });
+    return true;
+  } catch {
+    return true; // Se o KV falhar, não bloqueia (fail-open p/ não derrubar login legítimo)
+  }
+}
+
 app.use(cors({
   origin: (origin) => {
     if (!origin) return origin;
@@ -104,6 +117,10 @@ app.use("*", async (c, next) => {
 });
 
 app.post("/login", async c => {
+  const ipRL = c.req.header("cf-connecting-ip") || "unknown";
+  if (!(await rateLimit(c.env.RATE_LIMIT, "login:" + ipRL, 5, 900))) {
+    return c.json({ error: "Muitas tentativas de login. Aguarde 15 minutos." }, 429);
+  }
   const _b = await c.req.json().catch(() => ({}));
   const _v = validar(loginSchema, _b);
   if (!_v.ok) return c.json({ error: _v.erro }, 400);
@@ -395,6 +412,10 @@ app.get("/cobrancas", async c => {
 });
 
 app.post("/auth/login", async c => {
+  const ipRL = c.req.header("cf-connecting-ip") || "unknown";
+  if (!(await rateLimit(c.env.RATE_LIMIT, "login:" + ipRL, 5, 900))) {
+    return c.json({ error: "Muitas tentativas de login. Aguarde 15 minutos." }, 429);
+  }
   const _b = await c.req.json().catch(() => ({}));
   const _v = validar(loginSchema, _b);
   if (!_v.ok) return c.json({ error: _v.erro }, 400);
@@ -1524,6 +1545,10 @@ app.post("/saas/cadastrar", async c => {
     if (c.env.SAAS_ATIVO !== "true") {
       return c.json({ ok: false, error: "Cadastro de novas escolas desativado. Multi-tenancy nao implementado." }, 403);
     }
+  const ipRLc = c.req.header("cf-connecting-ip") || "unknown";
+  if (!(await rateLimit(c.env.RATE_LIMIT, "cadastro:" + ipRLc, 3, 3600))) {
+    return c.json({ error: "Muitos cadastros. Aguarde 1 hora." }, 429);
+  }
   const _bc = await c.req.json().catch(() => ({}));
   const _vc = validar(cadastroSchema, _bc);
   if (!_vc.ok) return c.json({ error: _vc.erro }, 400);
