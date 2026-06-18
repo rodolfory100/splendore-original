@@ -85,9 +85,26 @@ async function hashSenha(senha: string): Promise<string> {
   return "pbkdf2$" + b64url(salt) + "$" + b64url(new Uint8Array(bits));
 }
 
+// CR-1: sanitiza o body de /config — senha SEMPRE vira hash; se ausente, nao sobrescreve.
+async function sanitizarConfigBody(body: any): Promise<any> {
+  const limpo = { ...body };
+  if ("senha" in limpo) {
+    if (limpo.senha && String(limpo.senha).trim() !== "") {
+      // veio senha nova em texto → aplica hash PBKDF2 antes de gravar
+      limpo.senha = await hashSenha(String(limpo.senha));
+    } else {
+      // senha vazia/ausente → remove para NAO sobrescrever a existente
+      delete limpo.senha;
+    }
+  }
+  return limpo;
+}
+
 async function verificarSenha(senha: string, armazenado: string): Promise<boolean> {
+  // CR-1: somente PBKDF2. Fallback de texto plano REMOVIDO (ver ADR-004).
+  // Se o armazenado nao for hash, a autenticacao FALHA (nunca compara texto plano).
   if (!armazenado || !armazenado.startsWith("pbkdf2$")) {
-    return senha === armazenado;
+    return false;
   }
   const partes = armazenado.split("$");
   const salt = Uint8Array.from(atob(partes[1].replace(/-/g, "+").replace(/_/g, "/")), x => x.charCodeAt(0));
@@ -149,13 +166,13 @@ app.get("/config", async c => {
 });
 
 app.put("/config", async c => {
-  const body = await c.req.json();
+  const body = await sanitizarConfigBody(await c.req.json());
   const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").upsert({ id: "main", ...body });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 app.post("/config", async c => {
-  const body = await c.req.json();
+  const body = await sanitizarConfigBody(await c.req.json());
   const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").upsert({ id: "main", ...body });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
