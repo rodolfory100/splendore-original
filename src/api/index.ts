@@ -23,11 +23,20 @@ async function rateLimit(kv: KVNamespace, chave: string, max: number, janelaSeg:
   }
 }
 
+// AL-2: allowlist EXATA de origens. Sem substring matching (ver ADR-005).
+const CORS_ALLOWLIST = [
+  "https://hathor.rodolfory100.workers.dev", // producao (Worker serve front + API)
+  "http://localhost:5173",                   // dev (Vite)
+  "http://localhost:4173",                   // dev (Vite preview)
+];
 app.use(cors({
   origin: (origin) => {
+    // Origin ausente (same-origin, curl, server-to-server): permitido por design.
+    // Navegadores enviam Origin em requests cross-origin; sua ausencia nao e um
+    // vetor cross-site. Documentado no ADR-005.
     if (!origin) return origin;
-    if (origin === "http://localhost:5173" || origin.includes("splendore")) return origin;
-    return null;
+    // Comparacao por IGUALDADE EXATA. Dominio nao listado -> rejeitado (null).
+    return CORS_ALLOWLIST.includes(origin) ? origin : null;
   },
   allowMethods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowHeaders: ["Content-Type","Authorization"],
