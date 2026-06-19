@@ -1580,9 +1580,9 @@ app.get("/observabilidade/dashboard", async c => {
   const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
   const [saude, logsIA, bloqueadas, alertasSaude] = await Promise.all([
     sb_.from("saude_motor").select("*").eq("escola_id", c.get("escola_id")).maybeSingle(),
-    sb_.from("logs_ia_agente").select("status_final,tempo_resposta_ms,custo_estimado").order("created_at", { ascending: false }).limit(100),
-    sb_.from("sentimento_alunas").select("aluna_id,score,classificacao,bloquear_cobranca").eq("bloquear_cobranca", true).gt("expires_at", new Date().toISOString()),
-    sb_.from("alertas_saude").select("*").eq("resolvido", false).order("created_at", { ascending: false }).limit(5)
+    sb_.from("logs_ia_agente").select("status_final,tempo_resposta_ms,custo_estimado").eq("escola_id", c.get("escola_id")).order("created_at", { ascending: false }).limit(100),
+    sb_.from("sentimento_alunas").select("aluna_id,score,classificacao,bloquear_cobranca").eq("escola_id", c.get("escola_id")).eq("bloquear_cobranca", true).gt("expires_at", new Date().toISOString()),
+    sb_.from("alertas_saude").select("*").eq("escola_id", c.get("escola_id")).eq("resolvido", false).order("created_at", { ascending: false }).limit(5)
   ]);
   const logs = logsIA.data || [];
   const custoTotal = logs.reduce((s: number, l: any) => s + (l.custo_estimado || 0), 0);
