@@ -1227,19 +1227,21 @@ app.post("/fila/enfileirar-lote", async c => {
 // CACHE DE PERFIL DE RISCO — Evita re-análise desnecessária
 // ═══════════════════════════════════════════════════════════════
 
-async function getPerfilRiscoCache(sb_: any, alunaId: string) {
+async function getPerfilRiscoCache(sb_: any, escolaId: string, alunaId: string) {
   const { data } = await sb_
     .from("cache_perfil_risco")
     .select("*")
+    .eq("escola_id", escolaId)
     .eq("aluna_id", alunaId)
     .gt("expires_at", new Date().toISOString())
     .single();
   return data;
 }
 
-async function salvarPerfilRiscoCache(sb_: any, alunaId: string, perfil: any) {
+async function salvarPerfilRiscoCache(sb_: any, escolaId: string, alunaId: string, perfil: any) {
   const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
   await sb_.from("cache_perfil_risco").upsert({
+    escola_id: escolaId,
     aluna_id: alunaId,
     score: perfil.score,
     nivel: perfil.nivel,
@@ -1250,10 +1252,10 @@ async function salvarPerfilRiscoCache(sb_: any, alunaId: string, perfil: any) {
   });
 }
 
-async function registrarAlerta(sb_: any, tipo: string, severidade: string, mensagem: string, payload?: any) {
+async function registrarAlerta(sb_: any, escolaId: string, tipo: string, severidade: string, mensagem: string, payload?: any) {
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
   await sb_.from("alertas_motor").insert({
-    id: genId(), tipo, severidade, mensagem, payload
+    id: genId(), escola_id: escolaId, tipo, severidade, mensagem, payload
   });
 }
 
@@ -1314,12 +1316,12 @@ app.get("/motor/saude", async c => {
   if (saude) {
     if ((saude.taxa_sucesso_pct || 0) < 80) {
       problemas.push({ tipo: "TAXA_SUCESSO_BAIXA", severidade: "critical", valor: saude.taxa_sucesso_pct });
-      await registrarAlerta(sb_, "TAXA_SUCESSO_BAIXA", "critical",
+      await registrarAlerta(sb_, c.get("escola_id"), "TAXA_SUCESSO_BAIXA", "critical",
         `Taxa de sucesso abaixo de 80%: ${saude.taxa_sucesso_pct}%`, saude);
     }
     if ((saude.falhas_ultima_hora || 0) > 10) {
       problemas.push({ tipo: "MUITAS_FALHAS_HORA", severidade: "warning", valor: saude.falhas_ultima_hora });
-      await registrarAlerta(sb_, "MUITAS_FALHAS_HORA", "warning",
+      await registrarAlerta(sb_, c.get("escola_id"), "MUITAS_FALHAS_HORA", "warning",
         `${saude.falhas_ultima_hora} falhas na última hora`, saude);
     }
     if ((saude.fila_processando || 0) > 100) {
@@ -1349,7 +1351,7 @@ app.get("/motor/risco/:alunaId", async c => {
 
   // Tenta cache primeiro
   if (!forceRefresh) {
-    const cache = await getPerfilRiscoCache(sb_, alunaId);
+    const cache = await getPerfilRiscoCache(sb_, c.get("escola_id"), alunaId);
     if (cache) {
       return c.json({ ...cache, fonte: "cache", economia: "Claude não consultado" });
     }
@@ -1389,7 +1391,7 @@ app.get("/motor/risco/:alunaId", async c => {
   const perfil = { aluna_id: alunaId, score: Math.min(100, score), nivel, motivos, ltv12meses, taxaRetencao };
 
   // Salva no cache por 24h
-  await salvarPerfilRiscoCache(sb_, alunaId, perfil);
+  await salvarPerfilRiscoCache(sb_, c.get("escola_id"), alunaId, perfil);
 
   return c.json({ ...perfil, fonte: "calculado", expires_em: "24h" });
 });
@@ -1537,9 +1539,9 @@ async function analisarSentimento(sb_: any, alunaId: string): Promise<any> {
   return { ...resultado, fonte: "calculado" };
 }
 
-async function verificarSaudeMotor(sb_: any): Promise<any> {
+async function verificarSaudeMotor(sb_: any, escolaId: string): Promise<any> {
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
-  const { data: saude } = await sb_.from("saude_motor").select("*").eq("escola_id", c.get("escola_id")).maybeSingle();
+  const { data: saude } = await sb_.from("saude_motor").select("*").eq("escola_id", escolaId).maybeSingle();
   if (!saude) return null;
   const taxa = saude.taxa_sucesso_pct || 100;
   const falhasConsec = saude.total_falhou || 0;
@@ -1567,7 +1569,7 @@ app.get("/observabilidade/logs-performance", async c => {
 });
 
 app.post("/observabilidade/verificar-saude", async c => {
-  const alerta = await verificarSaudeMotor(sb(c.env.SUPABASE_SECRET_KEY));
+  const alerta = await verificarSaudeMotor(sb(c.env.SUPABASE_SECRET_KEY), c.get("escola_id"));
   return c.json({ ok: true, alerta_gerado: !!alerta, alerta: alerta || null, mensagem: alerta ? "Alerta " + (alerta.severidade) + " gerado" : "Sistema saudavel" });
 });
 
