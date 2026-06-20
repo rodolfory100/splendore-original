@@ -1273,19 +1273,6 @@ async function registrarAlerta(sb_: any, escolaId: string, tipo: string, severid
   });
 }
 
-async function registrarMetrica(sb_: any, dados: any) {
-  const agora = new Date();
-  const data = agora.toISOString().split("T")[0];
-  const hora = agora.getHours();
-  await sb_.from("metricas_motor").upsert({
-    data, hora,
-    total_processadas: dados.processadas || 0,
-    total_sucesso: dados.sucesso || 0,
-    total_falhas: dados.falhas || 0,
-    valor_processado: dados.valorProcessado || 0,
-  }, { onConflict: "data,hora", ignoreDuplicates: false });
-}
-
 // ═══════════════════════════════════════════════════════════════
 // DASHBOARD DE SAÚDE DO MOTOR — O monitor do monitor
 // ═══════════════════════════════════════════════════════════════
