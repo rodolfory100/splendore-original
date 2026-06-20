@@ -158,7 +158,12 @@ app.post("/login", async c => {
     if (cfg && await verificarSenha(senha, cfg.senha)) match = cfg;
   } else {
     // Retrocompat temporária: login só por senha (Ballet legado). Remover após migração total.
+    // GUARDA MULTI-TENANT (L-c): fallback so-senha so e seguro com exatamente 1 escola.
+    // Com 2+ configs, exige email para evitar autenticacao na escola errada.
     const { data: configs } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id");
+    if ((configs || []).length !== 1) {
+      return c.json({ error: "Informe o email para login" }, 401);
+    }
     for (const cfg of (configs || [])) {
       if (await verificarSenha(senha, cfg.senha)) { match = cfg; break; }
     }
@@ -453,7 +458,12 @@ app.post("/auth/login", async c => {
     if (cfg && await verificarSenha(senha, cfg.senha)) match = cfg;
   } else {
     // Retrocompat temporária: login só por senha (Ballet legado). Remover após migração total.
+    // GUARDA MULTI-TENANT (L-c): fallback so-senha so e seguro com exatamente 1 escola.
+    // Com 2+ configs, exige email para evitar autenticacao na escola errada.
     const { data: configs } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha,escola,nome_admin,escola_id");
+    if ((configs || []).length !== 1) {
+      return c.json({ error: "Informe o email para login" }, 401);
+    }
     for (const cfg of (configs || [])) {
       if (await verificarSenha(senha, cfg.senha)) { match = cfg; break; }
     }
