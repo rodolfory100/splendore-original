@@ -175,19 +175,23 @@ app.post("/login", async c => {
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 app.get("/config", async c => {
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("*").eq("id","main").single();
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("*").eq("escola_id", c.get("escola_id")).single();
   return c.json(data || {});
 });
 
 app.put("/config", async c => {
   const body = await sanitizarConfigBody(await c.req.json());
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").upsert({ id: "main", ...body });
+  const escolaId = c.get("escola_id");
+  const idConfig = escolaId === "splendore001" ? "main" : escolaId;
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").upsert({ id: idConfig, ...body, escola_id: escolaId }, { onConflict: "escola_id" });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 app.post("/config", async c => {
   const body = await sanitizarConfigBody(await c.req.json());
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").upsert({ id: "main", ...body });
+  const escolaId = c.get("escola_id");
+  const idConfig = escolaId === "splendore001" ? "main" : escolaId;
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").upsert({ id: idConfig, ...body, escola_id: escolaId }, { onConflict: "escola_id" });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
