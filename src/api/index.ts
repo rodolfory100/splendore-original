@@ -1675,10 +1675,3 @@ app.post("/saas/cadastrar", async c => {
   });
 });
 
-app.get("/saas/escolas", async c => {
-  // Rota admin — listar todas as escolas
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY)
-    .from("escolas").select("id,nome,slug,email,plano,trial_expira_em,ativo,criado_em")
-    .order("criado_em", { ascending: false });
-  return c.json(data || []);
-});
