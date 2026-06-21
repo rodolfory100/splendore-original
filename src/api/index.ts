@@ -523,7 +523,7 @@ app.put("/parcelas/:id/pagar", async c => {
 app.get("/mensalidades/:alunaId", async c => {
   const alunaId = c.req.param("alunaId");
   const ano = c.req.query("ano") || new Date().getFullYear().toString();
-  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").eq("aluna_id", alunaId).like("mes", ano + "-%").order("mes");
+  const { data, error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("*").eq("aluna_id", alunaId).eq("escola_id", c.get("escola_id")).like("mes", ano + "-%").order("mes");
   if (error) return c.json({ error: error.message }, 500);
   const meses = ["01","02","03","04","05","06","07","08","09","10","11","12"];
   const pagSet = new Map((data||[]).map((p:any) => [p.mes, p]));
@@ -702,7 +702,7 @@ app.post("/mensalidades/gerar/:alunaId", async c => {
   const alunaId = c.req.param("alunaId");
   const { ano } = await c.req.json().catch(() => ({}));
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
-  const { data: aluna } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("id", alunaId).single();
+  const { data: aluna } = await sb(c.env.SUPABASE_SECRET_KEY).from("alunas").select("*").eq("id", alunaId).eq("escola_id", c.get("escola_id")).single();
   if (!aluna) return c.json({ error: "Aluna não encontrada" }, 404);
   const meses = Array.from({length: 12}, (_, i) => `${ano}-${String(i+1).padStart(2,"0")}`);
   const { data: existentes } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").select("mes").eq("aluna_id", alunaId).eq("escola_id", c.get("escola_id"));
@@ -785,16 +785,18 @@ app.get("/avaliacoes", async c => { return c.json([]); });
 app.post("/avaliacoes", async c => { return c.json({ ok: true }); });
 app.put("/config/senha", async c => {
   const { senhaAtual, novaSenha } = await c.req.json();
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("id","main").single();
+  const escolaId = c.get("escola_id");
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("escola_id", escolaId).single();
   if (!data || !(await verificarSenha(senhaAtual, data.senha))) return c.json({ error: "Senha atual incorreta" }, 401);
-  await sb(c.env.SUPABASE_SECRET_KEY).from("config").update({ senha: await hashSenha(novaSenha) }).eq("id","main");
+  await sb(c.env.SUPABASE_SECRET_KEY).from("config").update({ senha: await hashSenha(novaSenha) }).eq("escola_id", escolaId);
   return c.json({ ok: true });
 });
 app.post("/config/senha", async c => {
   const { senhaAtual, novaSenha } = await c.req.json();
-  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("id","main").single();
+  const escolaId = c.get("escola_id");
+  const { data } = await sb(c.env.SUPABASE_SECRET_KEY).from("config").select("senha").eq("escola_id", escolaId).single();
   if (!data || !(await verificarSenha(senhaAtual, data.senha))) return c.json({ error: "Senha atual incorreta" }, 401);
-  await sb(c.env.SUPABASE_SECRET_KEY).from("config").update({ senha: await hashSenha(novaSenha) }).eq("id","main");
+  await sb(c.env.SUPABASE_SECRET_KEY).from("config").update({ senha: await hashSenha(novaSenha) }).eq("escola_id", escolaId);
   return c.json({ ok: true });
 });
 app.post("/efi/boleto", async c => { return c.json({ error: "Efi não configurado" }, 400); });
@@ -803,7 +805,7 @@ app.post("/importar", async c => { return c.json({ ok: true, importados: 0 }); }
 app.post("/mensalidades/editar-lote", async c => {
   const b = await c.req.json();
   const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
-  const { data: aluna } = await sb_.from("alunas").select("*").eq("id", b.alunaId).single();
+  const { data: aluna } = await sb_.from("alunas").select("*").eq("id", b.alunaId).eq("escola_id", c.get("escola_id")).single();
   if (!aluna) return c.json({ error: "Aluna nao encontrada" }, 404);
   const calcValor = (base: number) => {
     if (b.novoValor != null) return b.novoValor;
@@ -1273,6 +1275,19 @@ async function registrarAlerta(sb_: any, escolaId: string, tipo: string, severid
   });
 }
 
+async function registrarMetrica(sb_: any, dados: any) {
+  const agora = new Date();
+  const data = agora.toISOString().split("T")[0];
+  const hora = agora.getHours();
+  await sb_.from("metricas_motor").upsert({
+    data, hora,
+    total_processadas: dados.processadas || 0,
+    total_sucesso: dados.sucesso || 0,
+    total_falhas: dados.falhas || 0,
+    valor_processado: dados.valorProcessado || 0,
+  }, { onConflict: "data,hora", ignoreDuplicates: false });
+}
+
 // ═══════════════════════════════════════════════════════════════
 // DASHBOARD DE SAÚDE DO MOTOR — O monitor do monitor
 // ═══════════════════════════════════════════════════════════════
@@ -1404,7 +1419,7 @@ app.put("/motor/alertas/:id/resolver", async c => {
   await sb_.from("alertas_motor").update({
     resolvido: true,
     resolvido_em: new Date().toISOString()
-  }).eq("id", id);
+  }).eq("id", id).eq("escola_id", c.get("escola_id"));
   return c.json({ ok: true });
 });
 
@@ -1522,12 +1537,12 @@ app.use("*", async (c, next) => {
   }
 });
 
-async function analisarSentimento(sb_: any, alunaId: string): Promise<any> {
+async function analisarSentimento(sb_: any, alunaId: string, escolaId: string): Promise<any> {
   const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
-  const { data: cache } = await sb_.from("sentimento_alunas").select("*").eq("aluna_id", alunaId).gt("expires_at", new Date().toISOString()).single();
+  const { data: cache } = await sb_.from("sentimento_alunas").select("*").eq("aluna_id", alunaId).eq("escola_id", escolaId).gt("expires_at", new Date().toISOString()).single();
   if (cache) return { ...cache, fonte: "cache" };
-  const { data: aluna } = await sb_.from("alunas").select("*").eq("id", alunaId).single();
-  const { data: pagamentos } = await sb_.from("pagamentos").select("mes,valor,data").eq("aluna_id", alunaId).limit(6);
+  const { data: aluna } = await sb_.from("alunas").select("*").eq("id", alunaId).eq("escola_id", escolaId).single();
+  const { data: pagamentos } = await sb_.from("pagamentos").select("mes,valor,data").eq("aluna_id", alunaId).eq("escola_id", escolaId).limit(6);
   const mesesSemPagar = (pagamentos || []).filter((p: any) => !p.data).length;
   let score = 0.5; let motivo = "Historico neutro";
   if (aluna?.suspenso) { score = -0.7; motivo = "Conta suspensa"; }
@@ -1535,7 +1550,7 @@ async function analisarSentimento(sb_: any, alunaId: string): Promise<any> {
   else if (mesesSemPagar >= 2) { score = -0.3; motivo = "2 meses sem pagar"; }
   else if (mesesSemPagar === 0) { score = 0.8; motivo = "Pagamentos em dia"; }
   const classificacao = score >= 0.5 ? "satisfeita" : score >= 0 ? "neutra" : score >= -0.5 ? "insatisfeita" : "muito_insatisfeita";
-  const resultado = { aluna_id: alunaId, score, classificacao, bloquear_cobranca: score < -0.5, alerta_humano: score < -0.5, motivo, mensagens_analisadas: (pagamentos || []).length, expires_at: new Date(Date.now() + 7*24*3600*1000).toISOString() };
+  const resultado = { aluna_id: alunaId, escola_id: escolaId, score, classificacao, bloquear_cobranca: score < -0.5, alerta_humano: score < -0.5, motivo, mensagens_analisadas: (pagamentos || []).length, expires_at: new Date(Date.now() + 7*24*3600*1000).toISOString() };
   await sb_.from("sentimento_alunas").upsert({ id: genId(), ...resultado }, { onConflict: "aluna_id" });
   return { ...resultado, fonte: "calculado" };
 }
@@ -1555,8 +1570,9 @@ async function verificarSaudeMotor(sb_: any, escolaId: string): Promise<any> {
 
 app.get("/observabilidade/sentimento/:alunaId", async c => {
   const sb_ = sb(c.env.SUPABASE_SECRET_KEY);
-  if (c.req.query("refresh") === "true") await sb_.from("sentimento_alunas").delete().eq("aluna_id", c.req.param("alunaId"));
-  return c.json(await analisarSentimento(sb_, c.req.param("alunaId")));
+  const escolaId = c.get("escola_id");
+  if (c.req.query("refresh") === "true") await sb_.from("sentimento_alunas").delete().eq("aluna_id", c.req.param("alunaId")).eq("escola_id", escolaId);
+  return c.json(await analisarSentimento(sb_, c.req.param("alunaId"), escolaId));
 });
 
 app.get("/observabilidade/logs-ia", async c => {
@@ -1603,7 +1619,7 @@ app.post("/recalcular/:alunaId", async c => {
 
   // Buscar mensalidades pendentes do ano
   const { data: mens } = await sb(c.env.SUPABASE_SECRET_KEY)
-    .from("pagamentos").select("id,mes,data").eq("aluna_id", alunaId)
+    .from("pagamentos").select("id,mes,data").eq("aluna_id", alunaId).eq("escola_id", c.get("escola_id"))
     .like("mes", ano + "-%").order("mes");
 
   let atualizados = 0;
@@ -1612,14 +1628,14 @@ app.post("/recalcular/:alunaId", async c => {
       // Atualizar valor das pendentes
       await sb(c.env.SUPABASE_SECRET_KEY)
         .from("pagamentos").update({ valor: valorParcela })
-        .eq("id", m.id);
+        .eq("id", m.id).eq("escola_id", c.get("escola_id"));
       atualizados++;
     }
   }
 
   // Atualizar valor padrão da aluna
   await sb(c.env.SUPABASE_SECRET_KEY)
-    .from("alunas").update({ valor: valorParcela }).eq("id", alunaId);
+    .from("alunas").update({ valor: valorParcela }).eq("id", alunaId).eq("escola_id", c.get("escola_id"));
 
   return c.json({ ok: true, atualizados, valorAlvo: valorParcela, mensagem: `✓ ${atualizados} mensalidades recalculadas para R$${valorParcela}` });
 });
@@ -1675,3 +1691,4 @@ app.post("/saas/cadastrar", async c => {
   });
 });
 
+// [REMOVIDO S1] /saas/escolas vazava lista de escolas cross-tenant
