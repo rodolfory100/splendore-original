@@ -12,6 +12,7 @@ def bug(sev,f,d): B.append((sev,f,d))
 def http(m,u,h=None,b=None):
     h=h or {}; data=json.dumps(b).encode() if b is not None else None
     if data: h["Content-Type"]="application/json"
+    h["User-Agent"]="Mozilla/5.0 (QA-Agent Hathor)"
     rq=urllib.request.Request(u,data=data,headers=h,method=m)
     try:
         with urllib.request.urlopen(rq,timeout=20) as r:
