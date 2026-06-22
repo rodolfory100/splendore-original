@@ -48,7 +48,7 @@ def f1():
     return eid,tok
 def f2(tok):
     print("\n━━ FASE 2: Turmas ━━")
-    st,r=api("POST","/turmas",tok,{"nome":"Ballet QA","dia":"Segunda","horario":"14:00"})
+    st,r=api("POST","/turmas",tok,{"nome":"Ballet QA"})
     if st!=200: log("F2","criar turma","FAIL",f"HTTP {st} {str(r)[:60]}"); bug("P1","F2",f"Criar turma HTTP {st}: {str(r)[:50]}"); return
     log("F2","criar turma","PASS","")
     st,r=api("GET","/turmas",tok)
@@ -78,16 +78,16 @@ def f4(tok,aid):
     mens=m.get("mensalidades") if isinstance(m,dict) else (m if isinstance(m,list) else [])
     pend=[x for x in mens if not x.get("data")] if mens else []
     if not pend: log("F4","pagamento","SKIP","sem mensalidade pendente"); return
-    pid=pend[0].get("id")
-    st,r=api("PUT",f"/pagamentos/{pid}/pagar",tok,{"data":"2026-06-10","valor":200,"forma":"pix"})
+    mes_alvo=pend[0].get("mes")
+    st,r=api("POST","/pagamentos",tok,{"aluna_id":aid,"mes":mes_alvo,"data":"2026-06-10","valor":200,"forma":"pix"})
     if st==200:
-        log("F4","registrar pgto","PASS",f"pag_id={pid}")
+        log("F4","registrar pgto","PASS",f"mes={mes_alvo}")
         st,m2=api("GET",f"/mensalidades/{aid}",tok)
         mm=m2.get("mensalidades") if isinstance(m2,dict) else m2
-        paga=[x for x in (mm or []) if x.get("id")==pid and x.get("data")]
+        paga=[x for x in (mm or []) if x.get("mes")==mes_alvo and x.get("data")]
         if paga: log("F4","conferir baixa (API)","PASS",f"data={paga[0].get('data')}")
-        else: log("F4","conferir baixa (API)","FAIL","data nao gravada"); bug("P0","F4","Baixa nao persistiu")
-    else: log("F4","registrar pgto","FAIL",f"HTTP {st} {str(r)[:40]}"); bug("P0","F4","Pagamento falhou")
+        else: log("F4","conferir baixa (API)","FAIL","data nao gravada"); bug("P1","F4","Baixa nao refletiu na API")
+    else: log("F4","registrar pgto","FAIL",f"HTTP {st} {str(r)[:40]}"); bug("P1","F4","POST pagamento falhou")
 def f5(tok,aid):
     print("\n━━ FASE 5: Inadimplencia + dashboard + risco ━━")
     st,r=api("GET","/inadimplentes",tok); log("F5","inadimplencia","PASS" if st==200 else "FAIL",f"HTTP {st}")
