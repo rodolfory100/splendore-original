@@ -138,7 +138,8 @@ app.use("*", async (c, next) => {
   if (!token) return c.json({ error: "Nao autenticado" }, 401);
   const payload = await verifyToken(token, c.env.JWT_SECRET);
   if (!payload) return c.json({ error: "Token invalido ou expirado" }, 401);
-  c.set("escola_id", payload.escola_id || "splendore001");
+  if (!payload.escola_id) return c.json({ error: "Token sem tenant" }, 401);
+  c.set("escola_id", payload.escola_id);
   await next();
 });
 
