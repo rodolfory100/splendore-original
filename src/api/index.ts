@@ -301,7 +301,8 @@ app.get("/turmas", async c => {
 
 app.post("/turmas", async c => {
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").insert({ ...body, escola_id: c.get("escola_id") });
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("turmas").insert({ id: genId(), ...body, escola_id: c.get("escola_id") });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
@@ -323,7 +324,8 @@ app.get("/pagamentos", async c => {
 
 app.post("/pagamentos", async c => {
   const body = await c.req.json();
-  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert({ ...body, escola_id: c.get("escola_id") });
+  const genId = () => crypto.randomUUID().replace(/-/g,"").slice(0,12);
+  const { error } = await sb(c.env.SUPABASE_SECRET_KEY).from("pagamentos").insert({ id: genId(), ...body, escola_id: c.get("escola_id") });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
