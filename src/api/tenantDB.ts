@@ -1,4 +1,22 @@
 // ─────────────────────────────────────────────────────────────────────────────
+// @deprecated — LEGADO DOCUMENTADO. NÃO USAR EM PRODUÇÃO. NÃO REMOVER AINDA.
+//
+// DECISÃO DE ARQUITETURA (Caminho C, aprovada 2026-06-25):
+//   Este wrapper NÃO é usado por nenhum endpoint (0 importadores — confirmado por
+//   grep). O isolamento multi-tenant em produção é feito manualmente via
+//   .eq("escola_id") em cada handler do index.ts, e está provado por testes IDOR.
+//
+//   Estratégia oficial de isolamento do Hathor (em ordem):
+//     1. (atual) Isolamento manual por handler — funcional, provado.
+//     2. (próximo) Migração gradual para arquitetura de Repositories.
+//     3. (definitivo) RLS no Postgres como mecanismo final de isolamento no banco.
+//
+//   CRITÉRIO DE REMOÇÃO deste arquivo: somente após a migração para Repositories
+//   + RLS estar concluída E validada pelo QA Agent e pelo Security Agent.
+//   Até lá, permanece como referência de design (injeção automática de escola_id).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
 // tenantDB — Wrapper de isolamento multi-tenant (ADR-001, Caminho B)
 //
 // MITIGAÇÃO TEMPORÁRIA. Objetivo Fase 1: RLS real via anon key + JWT de tenant.
